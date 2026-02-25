@@ -111,33 +111,87 @@ Se implementará **Clean Architecture**:
 ## Teacher Flow
 
 1. Login
-2. Crear curso
-3. Invitar estudiantes (token privado / código verificación)
-4. Importar grupos desde Brightspace
-5. Crear evaluación:
+
+
+   <img width="405" height="769" alt="image" src="https://github.com/user-attachments/assets/90169721-4691-438a-bcff-d623f1df8bf4" />
+
+
+2. Dashboard
+
+
+   <img width="402" height="757" alt="image" src="https://github.com/user-attachments/assets/2ac2ed80-110a-4722-93c2-8466ffb03d5d" />
+
+3. Crear curso
+
+   <img width="373" height="764" alt="image" src="https://github.com/user-attachments/assets/12e304da-dc32-4a49-ac86-663858b62f6f" />
+
+   
+4. Invitar estudiantes (token privado / código verificación)
+
+   <img width="379" height="754" alt="image" src="https://github.com/user-attachments/assets/18287dea-ee8f-4080-b7f1-5e65def04827" />
+
+6. Importar grupos desde Brightspace
+
+   <img width="358" height="757" alt="image" src="https://github.com/user-attachments/assets/62a03b14-e32d-49f9-ab9e-72e284ef1460" />
+
+7. Crear evaluación:
 
    * Nombre
    * Ventana de tiempo
    * Categoría
    * Visibilidad (Public / Private)
-6. Activar evaluación
-7. Visualizar métricas:
+
+  <img width="374" height="766" alt="image" src="https://github.com/user-attachments/assets/8dae1b31-385d-41b5-a99a-9dfedfd546ee" />
+
+  
+8. Activar evaluación
+
+<img width="348" height="271" alt="image" src="https://github.com/user-attachments/assets/e735b11d-4034-4520-b24b-4a5866f5fd4a" />
+
+9. Visualizar métricas:
 
    * Promedio actividad
    * Promedio grupo
    * Promedio estudiante
    * Detalle por criterio
 
+<img width="394" height="759" alt="image" src="https://github.com/user-attachments/assets/6c2072d5-d784-4458-9606-c7a15e3a3c03" />
+
 ---
 
 ## Student Flow
 
 1. Login
-2. Unirse a curso
-3. Ver evaluaciones activas
+
+<img width="378" height="752" alt="image" src="https://github.com/user-attachments/assets/c6c3093b-6fc7-4c83-aac0-eac45d86ee0c" />
+
+2.Dashboard
+
+<img width="392" height="756" alt="image" src="https://github.com/user-attachments/assets/17edd49e-5fb0-4777-ae6e-b94f94e6b284" />
+
+3. Unirse a curso
+
+<img width="419" height="774" alt="image" src="https://github.com/user-attachments/assets/291c3139-3bbf-47a7-a6ad-166767d5e987" />
+
+4. Ver evaluaciones activas
+
+<img width="376" height="282" alt="image" src="https://github.com/user-attachments/assets/4506c04f-1af4-4566-a46a-c039a1c19359" />
+
+
 4. Evaluar compañeros (sin autoevaluación)
+
+<img width="417" height="779" alt="image" src="https://github.com/user-attachments/assets/be7a1c5f-6567-4b67-89f2-496ec441cd20" />
+
 5. Enviar evaluación
+
+<img width="428" height="771" alt="image" src="https://github.com/user-attachments/assets/6ed89ee4-3cd8-4336-a098-465c06dc437b" />
+
 6. Ver resultados (si son públicos)
+
+<img width="389" height="762" alt="image" src="https://github.com/user-attachments/assets/dc2580d6-4fe0-4673-b781-0918488ad5f6" />
+<img width="389" height="767" alt="image" src="https://github.com/user-attachments/assets/744f9a56-2753-4495-bf9d-790fe8ffa448" />
+
+
 
 ---
 
@@ -230,5 +284,6 @@ La solución:
 * Integración directa LMS
 
 ---
+
 
 
