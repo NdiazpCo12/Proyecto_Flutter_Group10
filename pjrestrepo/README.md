@@ -2,7 +2,7 @@
 
 ## Autor
 
-[Juan Pablo Guzman Restrepo]
+Juan Pablo Guzman Restrepo.
 
 ## Proyecto
 
@@ -16,7 +16,6 @@ Mobile Development Project — Peer Assessment App
 
 El sistema facilitara la evaluación entre pares en trabajos grupales, proporcionando herramientas para gestionar cursos, grupos, actividades de evaluación y análisis de resultados. La aplicación promueve la responsabilidad individual, la transparencia en el trabajo colaborativo y el seguimiento del desempeño académico.
 
-La solución contempla dos tipos de usuarios: profesores y estudiantes.
 
 ---
 
@@ -39,8 +38,6 @@ La solución contempla dos tipos de usuarios: profesores y estudiantes.
 * Evaluación entre pares estructurada.
 * Retroalimentación entre estudiantes.
 * Visualización de resultados y métricas.
-
-Estos referentes evidencian la importancia de sistemas de evaluación colaborativa con retroalimentación estructurada y análisis de desempeño.
 
 ---
 
@@ -300,24 +297,18 @@ El sistema incluye:
 
 ## 8. Justificación de la Propuesta
 
-La solución responde a la necesidad de evaluar el trabajo colaborativo de forma objetiva y estructurada dentro de entornos educativos.
-
-Beneficios de la propuesta:
-
 * Mejora la responsabilidad individual.
 * Permite evaluación objetiva del trabajo en equipo.
 * Facilita análisis del desempeño académico.
 * Reduce sesgos en evaluaciones grupales.
 * Proporciona retroalimentación cuantificable.
 
-Los referentes analizados y prácticas educativas actuales evidencian la importancia de herramientas digitales para evaluación colaborativa.
-
 ---
 
 ## 9. Prototipo en Figma
 
 Link del prototipo:
-[https://www.figma.com/make/fUff3akO7fkAHo6xS4PnOS/Peer-Assessment-App-UI-UX?t=na7wTLLx4yijH20F-1]
+https://www.figma.com/make/fUff3akO7fkAHo6xS4PnOS/Peer-Assessment-App-UI-UX?t=na7wTLLx4yijH20F-1
 
 El prototipo incluye:
 
@@ -335,3 +326,4 @@ El prototipo incluye:
 * GetX
 * Clean Architecture
 * Servicios de autenticación y almacenamiento remoto
+
