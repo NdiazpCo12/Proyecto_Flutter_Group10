@@ -77,7 +77,8 @@ Incluye:
 ________________________________________
 Captura de Pantalla
 Aquí va la captura del Dashboard
-assets/screenshots/dashboard.png
+<img width="780" height="1280" alt="image" src="https://github.com/user-attachments/assets/7c89deb3-42a7-461a-b99f-8d478a519a2d" />
+<img width="788" height="1280" alt="image" src="https://github.com/user-attachments/assets/0566e8bb-bfe4-47a2-ad4d-7c3cf37944e7" />
 ________________________________________
 Flujo del Profesor
 ________________________________________
@@ -99,7 +100,8 @@ Características
 ________________________________________
 Captura de Pantalla
 Aquí va la captura del creador de evaluaciones
-assets/screenshots/assessment_creator.png
+<img width="976" height="1600" alt="image" src="https://github.com/user-attachments/assets/4b824906-4142-40ce-8598-eb70564436ae" />
+<img width="982" height="1600" alt="image" src="https://github.com/user-attachments/assets/d66aff81-7975-45e3-9be9-16bac89f94d1" />
 ________________________________________
 5. Centro de Analíticas
 Permite a los profesores ver el desempeño de los estudiantes.
@@ -120,7 +122,9 @@ Características
 ________________________________________
 Captura de Pantalla
 Aquí va la captura de analíticas
-assets/screenshots/analytics.png
+<img width="978" height="1600" alt="image" src="https://github.com/user-attachments/assets/69261436-5fc2-4e70-89ad-33d87521f58e" />
+<img width="988" height="1600" alt="image" src="https://github.com/user-attachments/assets/455c226f-adc9-4374-b1d2-c7172b094df3" />
+<img width="1024" height="1600" alt="image" src="https://github.com/user-attachments/assets/32279546-2ed1-45f6-8c91-41fbc6e67598" />
 ________________________________________
 Flujo del Estudiante
 ________________________________________
@@ -133,7 +137,7 @@ Incluye:
 ________________________________________
 Captura de Pantalla
 Aquí va la captura de lista de evaluaciones
-assets/screenshots/assessment_list.png
+<img width="786" height="1280" alt="image" src="https://github.com/user-attachments/assets/e90c43f7-7d51-46da-bf44-70cd4fa86e69" />
 ________________________________________
 7. Pantalla de Evaluación entre Pares
 Los estudiantes evalúan a sus compañeros.
@@ -141,10 +145,6 @@ Incluye:
 •	Lista de compañeros
 •	Autoevaluación deshabilitada
 •	Diseño limpio
-________________________________________
-Captura de Pantalla
-Aquí va la captura de evaluación entre pares
-assets/screenshots/peer_assessment.png
 ________________________________________
 8. Sistema de Calificación con Estrellas
 Cada compañero es evaluado mediante un sistema de 5 estrellas.
@@ -169,7 +169,7 @@ Características
 ________________________________________
 Captura de Pantalla
 Aquí va la captura del sistema de estrellas
-assets/screenshots/rating_component.png
+<img width="784" height="1280" alt="image" src="https://github.com/user-attachments/assets/728f2bd4-559b-481e-a95f-4992e4ea363d" />
 ________________________________________
 9. Descripción de Criterios
 Cada criterio tiene un ícono de información.
@@ -185,7 +185,7 @@ Ejemplo:
 ________________________________________
 Captura de Pantalla
 Aquí va la captura de descripción de criterios
-assets/screenshots/criteria_tooltip.png
+<img width="784" height="1280" alt="image" src="https://github.com/user-attachments/assets/73a55cf8-1341-459c-970b-99ee41b700a7" />
 ________________________________________
 10. Confirmación de Envío
 Antes de enviar la evaluación aparece un diálogo de confirmación.
@@ -196,7 +196,7 @@ Incluye:
 ________________________________________
 Captura de Pantalla
 Aquí va la captura del diálogo de confirmación
-assets/screenshots/submit_dialog.png
+<img width="780" height="1280" alt="image" src="https://github.com/user-attachments/assets/c856a653-ae46-4bd1-b4c3-3e8e3ad66f62" />
 ________________________________________
 11. Pantalla de Resultados
 Visible solo si la evaluación es Pública.
@@ -209,7 +209,9 @@ Visualización:
 ________________________________________
 Captura de Pantalla
 Aquí va la captura de resultados
-assets/screenshots/results.png
+<img width="986" height="1600" alt="image" src="https://github.com/user-attachments/assets/3f889ebd-0545-4c85-b1db-631dbb6dcf61" />
+<img width="982" height="1600" alt="image" src="https://github.com/user-attachments/assets/bffcb80e-5e99-4d8a-9e47-1ea02f9d2f4f" />
+<img width="1002" height="1600" alt="image" src="https://github.com/user-attachments/assets/71550152-8051-4e5c-8edf-978449ff8870" />
 ________________________________________
 Comportamiento Según Rol
 Profesor
@@ -245,33 +247,8 @@ Principios UX:
 •	Acciones claras
 •	Retroalimentación inmediata
 ________________________________________
-Estructura Sugerida del Proyecto
-lib/
- ├── screens/
- ├── widgets/
- ├── models/
- ├── services/
- ├── theme/
-________________________________________
-Carpeta de Capturas
-Crear esta carpeta:
-assets/screenshots/
-Ejemplo:
-assets/
- └── screenshots/
-     ├── splash.png
-     ├── login.png
-     ├── dashboard.png
-     ├── assessment_creator.png
-     ├── analytics.png
-     ├── assessment_list.png
-     ├── peer_assessment.png
-     ├── rating_component.png
-     ├── criteria_tooltip.png
-     ├── submit_dialog.png
-     └── results.png
-________________________________________
 Tecnologías
 •	Flutter
 •	Dart
 •	Figma (Diseño UI/UX)
+
