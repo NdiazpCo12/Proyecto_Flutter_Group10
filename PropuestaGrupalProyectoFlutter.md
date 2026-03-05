@@ -190,14 +190,41 @@ El prototipo de la aplicación fue diseñado utilizando Figma con un enfoque mob
 Incluye las siguientes interfaces principales:
 
 - Pantalla de autenticación
+- 
+<img width="346" height="733" alt="image" src="https://github.com/user-attachments/assets/6dda82a5-6bc3-48f7-bf70-f1aa272cde40" />
+
 - Dashboard del docente
+
+<img width="313" height="688" alt="image" src="https://github.com/user-attachments/assets/d9b6faeb-e8ac-42ac-8711-b832a2ea4b46" />
+
+
 - Dashboard del estudiante
+
+<img width="350" height="747" alt="image" src="https://github.com/user-attachments/assets/e623d110-b4a0-4956-8d92-7d6656096440" />
+
+
 - Gestión de cursos
-- Invitación de estudiantes
+
+<img width="342" height="744" alt="image" src="https://github.com/user-attachments/assets/0f76b0f5-2369-459e-9278-ae0a705da001" />
+
 - Sincronización de grupos
+
+<img width="308" height="151" alt="image" src="https://github.com/user-attachments/assets/5e5a7bef-f5c6-4568-8993-c9d23437d523" />
+
 - Creación de evaluaciones
-- Evaluación entre pares
+
+<img width="347" height="750" alt="image" src="https://github.com/user-attachments/assets/47abfa56-728d-444b-911e-1e37ce70ff2c" />
+
 - Panel de métricas y resultados
+
+<img width="368" height="747" alt="image" src="https://github.com/user-attachments/assets/f9d5e9f5-0ab1-47b5-9b50-14e7b13c46b0" />
+<img width="346" height="738" alt="image" src="https://github.com/user-attachments/assets/9ec08b52-7728-46c4-aeed-b51af13c8eaf" />
+
+
+- Evaluación
+
+<img width="350" height="749" alt="image" src="https://github.com/user-attachments/assets/b0c44bea-bc5f-4db7-86c8-6044c98c7d29" />
+
 
 Enlace al prototipo:
 
