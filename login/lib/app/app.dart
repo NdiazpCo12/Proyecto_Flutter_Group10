@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'core/theme/app_theme.dart';
-import 'modules/login/bindings/login_binding.dart';
-import 'modules/login/views/login_view.dart';
+import 'routes/app_pages.dart';
 
 class PeerAssessmentApp extends StatelessWidget {
   const PeerAssessmentApp({super.key});
@@ -14,8 +13,8 @@ class PeerAssessmentApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Peer Assessment',
       theme: AppTheme.themeData,
-      initialBinding: LoginBinding(),
-      home: const LoginView(),
+      initialRoute: AppPages.initial,
+      getPages: AppPages.routes,
     );
   }
 }
