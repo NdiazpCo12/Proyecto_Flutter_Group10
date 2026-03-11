@@ -1,4 +1,4 @@
-import '../controllers/login_controller.dart';
+import '../models/user_role.dart';
 
 class AuthService {
   Future<String> signIn({

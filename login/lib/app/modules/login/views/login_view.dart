@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../controllers/login_controller.dart';
+import '../models/user_role.dart';
 
 class LoginView extends GetView<LoginController> {
   const LoginView({super.key});

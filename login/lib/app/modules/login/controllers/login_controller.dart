@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../models/user_role.dart';
 import '../services/auth_service.dart';
-
-enum UserRole { student, teacher }
 
 class LoginController extends GetxController {
   LoginController({required AuthService authService})
