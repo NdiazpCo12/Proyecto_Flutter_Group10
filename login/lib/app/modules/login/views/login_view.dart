@@ -141,6 +141,11 @@ class LoginView extends GetView<LoginController> {
                             keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
                               hintText: 'student@university.edu',
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 18),
                             ),
                           ),
                         ),
@@ -161,6 +166,11 @@ class LoginView extends GetView<LoginController> {
                             obscureText: true,
                             decoration: const InputDecoration(
                               hintText: 'Enter your password',
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 18),
                             ),
                           ),
                         ),

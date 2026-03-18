@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../student/views/student_home_view.dart';
+import '../../teacher/bindings/teacher_home_binding.dart';
+import '../../teacher/views/teacher_home_view.dart';
 import '../models/user_role.dart';
 import '../services/auth_service.dart';
 
@@ -33,6 +36,23 @@ class LoginController extends GetxController {
         email: emailController.text.trim(),
         password: passwordController.text,
       );
+
+      if (selectedRole.value == UserRole.teacher &&
+          emailController.text.trim().isNotEmpty &&
+          passwordController.text.isNotEmpty) {
+        Get.offAll(
+          () => const TeacherHomeView(),
+          binding: TeacherHomeBinding(),
+        );
+        return;
+      }
+
+      if (selectedRole.value == UserRole.student &&
+          emailController.text.trim().isNotEmpty &&
+          passwordController.text.isNotEmpty) {
+        Get.offAll(() => const StudentHomeView());
+        return;
+      }
 
       Get.snackbar(
         'Login',
