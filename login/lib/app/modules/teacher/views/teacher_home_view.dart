@@ -583,33 +583,43 @@ class _TeacherDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final courses = controller.courses;
 
-    return Stack(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
         Container(
-          height: 210,
           color: AppTheme.primaryGreen,
+          child: SafeArea(
+            bottom: false,
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(24, 28, 24, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome back, teacher!',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Teacher Dashboard',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFFD4E4D6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-        SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+          child: Column(
             children: [
-              const Text(
-                'Welcome back, teacher!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Teacher Dashboard',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFFD4E4D6),
-                ),
-              ),
-              const SizedBox(height: 18),
               _SurfaceCard(
                 borderRadius: 28,
                 padding: const EdgeInsets.all(22),
@@ -722,62 +732,68 @@ class _TeacherEvaluations extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
         Container(
           width: double.infinity,
           color: AppTheme.primaryGreen,
-          padding: const EdgeInsets.fromLTRB(16, 56, 16, 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Assessments',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assessments',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Manage peer assessments',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFFDDE9DE),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Get.to(() => const TeacherEvaluationBuilderView());
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.primaryGreen,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Manage peer assessments',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFFDDE9DE),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  Get.to(() => const TeacherEvaluationBuilderView());
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppTheme.primaryGreen,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Create'),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Create'),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(12, 20, 12, 120),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 20, 12, 0),
+          child: Column(
             children: controller.evaluations
                 .map(
                   (evaluation) => Padding(
@@ -958,27 +974,40 @@ class _TeacherReports extends StatelessWidget {
       _BreakdownStudent(initials: 'DL', name: 'David Lee', average: 4.2),
     ];
 
-    return Stack(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
-        Container(height: 100, color: AppTheme.primaryGreen),
-        SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(22, 24, 22, 120),
+        Container(
+          color: AppTheme.primaryGreen,
+          child: SafeArea(
+            bottom: false,
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(22, 24, 22, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Analytics Hub',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'View assessment insights and trends',
+                    style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+          child: Column(
             children: [
-              const Text(
-                'Analytics Hub',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'View assessment insights and trends',
-                style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
-              ),
-              const SizedBox(height: 20),
               const _MetricSummaryCard(
                 icon: Icons.trending_up,
                 title: 'Overall Engagement',
@@ -1073,27 +1102,40 @@ class _TeacherProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
-        Container(height: 120, color: AppTheme.primaryGreen),
-        SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(22, 24, 22, 120),
+        Container(
+          color: AppTheme.primaryGreen,
+          child: SafeArea(
+            bottom: false,
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(22, 24, 22, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Profile',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Manage your account settings',
+                    style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
+          child: Column(
             children: [
-              const Text(
-                'Profile',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Manage your account settings',
-                style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
-              ),
-              const SizedBox(height: 18),
               _SurfaceCard(
                 borderRadius: 20,
                 child: Column(
