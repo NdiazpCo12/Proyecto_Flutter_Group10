@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../login/bindings/login_binding.dart';
+import '../../login/services/auth_service.dart';
 import '../../login/views/login_view.dart';
 
 class StudentHomeView extends StatefulWidget {
@@ -138,10 +139,7 @@ class _StudentDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          height: 170,
-          color: AppTheme.primaryGreen,
-        ),
+        Container(height: 170, color: AppTheme.primaryGreen),
         SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(22, 20, 22, 120),
@@ -157,10 +155,7 @@ class _StudentDashboard extends StatelessWidget {
               const SizedBox(height: 4),
               const Text(
                 'Student Dashboard',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFFDDE9DE),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
               ),
               const SizedBox(height: 14),
               _StudentSurfaceCard(
@@ -439,10 +434,7 @@ class _StudentProfile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          height: 120,
-          color: AppTheme.primaryGreen,
-        ),
+        Container(height: 120, color: AppTheme.primaryGreen),
         SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 120),
@@ -458,10 +450,7 @@ class _StudentProfile extends StatelessWidget {
               const SizedBox(height: 6),
               const Text(
                 'Manage your account settings',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFFDDE9DE),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
               ),
               const SizedBox(height: 18),
               _StudentSurfaceCard(
@@ -530,10 +519,7 @@ class _StudentProfile extends StatelessWidget {
               const SizedBox(height: 22),
               const Text(
                 'Settings',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 14),
               _StudentSurfaceCard(
@@ -559,10 +545,7 @@ class _StudentProfile extends StatelessWidget {
                     const SizedBox(height: 10),
                     const Text(
                       'Manage your notification preferences',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 16),
                     ),
                     const SizedBox(height: 18),
                     _SettingToggleTile(
@@ -595,10 +578,7 @@ class _StudentProfile extends StatelessWidget {
                   children: [
                     const Row(
                       children: [
-                        Icon(
-                          Icons.help_outline,
-                          color: AppTheme.primaryGreen,
-                        ),
+                        Icon(Icons.help_outline, color: AppTheme.primaryGreen),
                         SizedBox(width: 10),
                         Text(
                           'Support',
@@ -612,10 +592,7 @@ class _StudentProfile extends StatelessWidget {
                     const SizedBox(height: 10),
                     const Text(
                       'Get help and support',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 16),
                     ),
                     const SizedBox(height: 18),
                     _SupportButton(
@@ -636,7 +613,12 @@ class _StudentProfile extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    try {
+                      await Get.find<AuthService>().logout();
+                    } catch (_) {
+                      await Get.find<AuthService>().clearLocalSession();
+                    }
                     Get.offAll(
                       () => const LoginView(),
                       binding: LoginBinding(),
@@ -670,10 +652,7 @@ class _StudentProfile extends StatelessWidget {
                     SizedBox(height: 6),
                     Text(
                       'Powered by Roble • Version 1.0.0',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
                     ),
                   ],
                 ),
@@ -698,12 +677,7 @@ class _ProfileInfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: AppTheme.secondarySlate),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 15),
-          ),
-        ),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 15))),
       ],
     );
   }
@@ -740,10 +714,7 @@ class _SettingToggleTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 14,
-                ),
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
               ),
             ],
           ),
@@ -777,9 +748,7 @@ class _SupportButton extends StatelessWidget {
         minimumSize: const Size.fromHeight(44),
         backgroundColor: const Color(0xFFF8F8F8),
         alignment: Alignment.centerLeft,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       icon: Icon(icon, size: 18),
       label: Text(label),

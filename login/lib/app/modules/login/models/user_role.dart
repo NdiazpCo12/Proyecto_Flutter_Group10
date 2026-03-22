@@ -1,4 +1,0 @@
-enum UserRole {
-  student,
-  teacher,
-}

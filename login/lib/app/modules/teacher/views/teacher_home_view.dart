@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../login/bindings/login_binding.dart';
+import '../../login/services/auth_service.dart';
 import '../../login/views/login_view.dart';
 import '../controllers/teacher_home_controller.dart';
 import '../models/teacher_models.dart';
@@ -306,10 +307,7 @@ class _TeacherEvaluationBuilderViewState
                 const SizedBox(height: 8),
                 const Text(
                   'Set up a new peer assessment',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFFDDE9DE),
-                  ),
+                  style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
                 ),
               ],
             ),
@@ -369,7 +367,11 @@ class _TeacherEvaluationBuilderViewState
                         label: 'Group Category *',
                         hint: 'Select group category',
                         value: _groupCategory,
-                        options: const ['Project Teams', 'Lab Groups', 'Squads'],
+                        options: const [
+                          'Project Teams',
+                          'Lab Groups',
+                          'Squads',
+                        ],
                         onChanged: (value) {
                           if (value == null) {
                             return;
@@ -585,10 +587,7 @@ class _TeacherDashboard extends StatelessWidget {
 
     return Stack(
       children: [
-        Container(
-          height: 210,
-          color: AppTheme.primaryGreen,
-        ),
+        Container(height: 210, color: AppTheme.primaryGreen),
         SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
@@ -604,10 +603,7 @@ class _TeacherDashboard extends StatelessWidget {
               const SizedBox(height: 6),
               const Text(
                 'Teacher Dashboard',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFFD4E4D6),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFFD4E4D6)),
               ),
               const SizedBox(height: 18),
               _SurfaceCard(
@@ -665,9 +661,7 @@ class _TeacherDashboard extends StatelessWidget {
                               )
                             : const Icon(Icons.sync_rounded),
                         label: Text(
-                          controller.isSyncing.value
-                              ? 'Syncing'
-                              : 'Sync Now',
+                          controller.isSyncing.value ? 'Syncing' : 'Sync Now',
                         ),
                       ),
                     ),
@@ -746,10 +740,7 @@ class _TeacherEvaluations extends StatelessWidget {
                     SizedBox(height: 6),
                     Text(
                       'Manage peer assessments',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFFDDE9DE),
-                      ),
+                      style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
                     ),
                   ],
                 ),
@@ -814,28 +805,26 @@ class _AssessmentCard extends StatelessWidget {
             children: [
               _PillTag(
                 label: isActive ? 'Active' : 'Upcoming',
-                color: isActive ? AppTheme.primaryGreen : const Color(0xFF73C79B),
+                color: isActive
+                    ? AppTheme.primaryGreen
+                    : const Color(0xFF73C79B),
               ),
               const Spacer(),
               Icon(
-                isActive ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                isActive
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 size: 18,
                 color: AppTheme.textMuted,
               ),
               const SizedBox(width: 10),
-              const Icon(
-                Icons.chevron_right,
-                color: AppTheme.textMuted,
-              ),
+              const Icon(Icons.chevron_right, color: AppTheme.textMuted),
             ],
           ),
           const SizedBox(height: 18),
           Text(
             evaluation.title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           Text(
@@ -844,10 +833,7 @@ class _AssessmentCard extends StatelessWidget {
                 : evaluation.courseId == 'ux'
                 ? 'CS 302'
                 : 'CS 201',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppTheme.textMuted,
-            ),
+            style: const TextStyle(fontSize: 16, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 20),
           Row(
@@ -860,10 +846,7 @@ class _AssessmentCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 'Due: ${_mockDueDate(evaluation)}',
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 15),
               ),
             ],
           ),
@@ -878,10 +861,7 @@ class _AssessmentCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 evaluation.groupCategory,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 15),
               ),
             ],
           ),
@@ -891,17 +871,12 @@ class _AssessmentCard extends StatelessWidget {
               const Expanded(
                 child: Text(
                   'Completion',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppTheme.textMuted,
-                  ),
+                  style: TextStyle(fontSize: 15, color: AppTheme.textMuted),
                 ),
               ),
               Text(
                 '${evaluation.responses}/$total',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -930,14 +905,24 @@ class _TeacherReports extends StatelessWidget {
   Widget build(BuildContext context) {
     const activityBars = [
       _ChartBar(label: 'Sprint 1', value: 4.2, color: AppTheme.primaryGreen),
-      _ChartBar(label: 'Sprint 2', value: 4.5, color: AppTheme.primaryGreen, highlighted: true),
+      _ChartBar(
+        label: 'Sprint 2',
+        value: 4.5,
+        color: AppTheme.primaryGreen,
+        highlighted: true,
+      ),
       _ChartBar(label: 'Sprint 3', value: 4.3, color: AppTheme.primaryGreen),
       _ChartBar(label: 'Midterm', value: 4.1, color: AppTheme.primaryGreen),
     ];
     const teamBars = [
       _ChartBar(label: 'Team A', value: 4.6, color: AppTheme.secondarySlate),
       _ChartBar(label: 'Team B', value: 4.4, color: AppTheme.secondarySlate),
-      _ChartBar(label: 'Team C', value: 4.7, color: AppTheme.secondarySlate, highlighted: true),
+      _ChartBar(
+        label: 'Team C',
+        value: 4.7,
+        color: AppTheme.secondarySlate,
+        highlighted: true,
+      ),
       _ChartBar(label: 'Team D', value: 4.3, color: AppTheme.secondarySlate),
       _ChartBar(label: 'Team E', value: 4.5, color: AppTheme.secondarySlate),
     ];
@@ -1016,7 +1001,10 @@ class _TeacherReports extends StatelessWidget {
                   children: [
                     const Text(
                       'Detailed Breakdown',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -1030,9 +1018,18 @@ class _TeacherReports extends StatelessWidget {
                         decoration: const InputDecoration(),
                         icon: const Icon(Icons.keyboard_arrow_down_rounded),
                         items: const [
-                          DropdownMenuItem(value: 'Team A', child: Text('Team A')),
-                          DropdownMenuItem(value: 'Team B', child: Text('Team B')),
-                          DropdownMenuItem(value: 'Team C', child: Text('Team C')),
+                          DropdownMenuItem(
+                            value: 'Team A',
+                            child: Text('Team A'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Team B',
+                            child: Text('Team B'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Team C',
+                            child: Text('Team C'),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -1048,10 +1045,15 @@ class _TeacherReports extends StatelessWidget {
                         child: Obx(
                           () => _StudentBreakdownCard(
                             student: student,
-                            expanded: _TeacherUiState.expandedStudent.value == student.name,
+                            expanded:
+                                _TeacherUiState.expandedStudent.value ==
+                                student.name,
                             onToggle: () {
                               _TeacherUiState.expandedStudent.value =
-                                  _TeacherUiState.expandedStudent.value == student.name ? '' : student.name;
+                                  _TeacherUiState.expandedStudent.value ==
+                                      student.name
+                                  ? ''
+                                  : student.name;
                             },
                           ),
                         ),
@@ -1171,11 +1173,17 @@ class _TeacherProfile extends StatelessWidget {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.notifications_none, color: AppTheme.primaryGreen),
+                        Icon(
+                          Icons.notifications_none,
+                          color: AppTheme.primaryGreen,
+                        ),
                         SizedBox(width: 10),
                         Text(
                           'Notifications',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -1232,7 +1240,10 @@ class _TeacherProfile extends StatelessWidget {
                         SizedBox(width: 10),
                         Text(
                           'Support',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -1260,7 +1271,12 @@ class _TeacherProfile extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    try {
+                      await Get.find<AuthService>().logout();
+                    } catch (_) {
+                      await Get.find<AuthService>().clearLocalSession();
+                    }
                     Get.offAll(
                       () => const LoginView(),
                       binding: LoginBinding(),
@@ -1283,7 +1299,10 @@ class _TeacherProfile extends StatelessWidget {
                   children: [
                     Text(
                       'Peer Assessment Platform',
-                      style: TextStyle(color: AppTheme.secondarySlate, fontSize: 16),
+                      style: TextStyle(
+                        color: AppTheme.secondarySlate,
+                        fontSize: 16,
+                      ),
                     ),
                     SizedBox(height: 6),
                     Text(
@@ -1548,10 +1567,7 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(fontWeight: FontWeight.w700),
-    );
+    return Text(label, style: const TextStyle(fontWeight: FontWeight.w700));
   }
 }
 
@@ -1580,9 +1596,7 @@ class _SelectorTile<T> extends StatelessWidget {
         DropdownButtonFormField<T>(
           initialValue: value,
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          decoration: InputDecoration(
-            hintText: hint,
-          ),
+          decoration: InputDecoration(hintText: hint),
           borderRadius: BorderRadius.circular(18),
           items: options
               .map(
@@ -1625,7 +1639,10 @@ class _MetricSummaryCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -1671,9 +1688,15 @@ class _ChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
-          Text(subtitle, style: const TextStyle(fontSize: 16, color: AppTheme.textMuted)),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 16, color: AppTheme.textMuted),
+          ),
           const SizedBox(height: 18),
           _MiniBarChart(
             bars: bars,
@@ -1712,7 +1735,12 @@ class _MiniBarChartState extends State<_MiniBarChart> {
         children: [
           Positioned.fill(
             child: Container(
-              margin: const EdgeInsets.only(left: 28, top: 12, right: 8, bottom: 42),
+              margin: const EdgeInsets.only(
+                left: 28,
+                top: 12,
+                right: 8,
+                bottom: 42,
+              ),
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFFE1E3E6)),
               ),
@@ -1720,7 +1748,12 @@ class _MiniBarChartState extends State<_MiniBarChart> {
           ),
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.only(left: 28, top: 12, right: 8, bottom: 42),
+              padding: const EdgeInsets.only(
+                left: 28,
+                top: 12,
+                right: 8,
+                bottom: 42,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
@@ -1752,80 +1785,82 @@ class _MiniBarChartState extends State<_MiniBarChart> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: widget.bars
-                  .map(
-                    (bar) {
-                      final index = widget.bars.indexOf(bar);
-                      final isHovered = _hoveredIndex == index;
+              children: widget.bars.map((bar) {
+                final index = widget.bars.indexOf(bar);
+                final isHovered = _hoveredIndex == index;
 
-                      return MouseRegion(
-                        onEnter: (_) {
-                          setState(() => _hoveredIndex = index);
-                        },
-                        onExit: (_) {
-                          setState(() => _hoveredIndex = null);
-                        },
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (isHovered)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  border: Border.all(color: const Color(0xFFD8DDE3)),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x12000000),
-                                      blurRadius: 10,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(bar.label, style: const TextStyle(fontSize: 12)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'average : ${bar.value.toStringAsFixed(1)}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.primaryGreen,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            else
-                              const SizedBox(height: 54),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              width: 32,
-                              height: (bar.value / 5) * 120,
-                              decoration: BoxDecoration(
-                                color: bar.color,
-                                borderRadius: BorderRadius.circular(6),
+                return MouseRegion(
+                  onEnter: (_) {
+                    setState(() => _hoveredIndex = index);
+                  },
+                  onExit: (_) {
+                    setState(() => _hoveredIndex = null);
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (isHovered)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFD8DDE3)),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x12000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
                               ),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              height: 18,
-                              child: Text(
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                 bar.label,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'average : ${bar.value.toStringAsFixed(1)}',
                                 style: const TextStyle(
                                   fontSize: 12,
-                                  color: AppTheme.secondarySlate,
+                                  color: AppTheme.primaryGreen,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                        )
+                      else
+                        const SizedBox(height: 54),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        width: 32,
+                        height: (bar.value / 5) * 120,
+                        decoration: BoxDecoration(
+                          color: bar.color,
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                      );
-                    },
-                  )
-                  .toList(),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 18,
+                        child: Text(
+                          bar.label,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondarySlate,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -1892,9 +1927,14 @@ class _StudentBreakdownCard extends StatelessWidget {
                 style: const TextStyle(color: AppTheme.primaryGreen),
               ),
             ),
-            title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(
+              student.name,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             subtitle: Text('Average: ${student.average.toStringAsFixed(1)}'),
-            trailing: Icon(expanded ? Icons.keyboard_arrow_down : Icons.chevron_right),
+            trailing: Icon(
+              expanded ? Icons.keyboard_arrow_down : Icons.chevron_right,
+            ),
           ),
           if (expanded && student.details != null)
             Container(
@@ -1917,11 +1957,16 @@ class _StudentBreakdownCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(entry.key, style: const TextStyle(fontSize: 14)),
+                            Text(
+                              entry.key,
+                              style: const TextStyle(fontSize: 14),
+                            ),
                             const SizedBox(height: 2),
                             Text(
                               entry.value.toStringAsFixed(1),
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
@@ -1975,9 +2020,18 @@ class _TeacherToggleTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(subtitle, style: const TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 14, color: AppTheme.textMuted),
+              ),
             ],
           ),
         ),

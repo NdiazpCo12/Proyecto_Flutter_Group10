@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../controllers/login_controller.dart';
-import '../models/user_role.dart';
 
 class LoginView extends GetView<LoginController> {
   const LoginView({super.key});
@@ -90,36 +89,30 @@ class LoginView extends GetView<LoginController> {
                           style: TextStyle(fontSize: 14, color: textSecondary),
                         ),
                         const SizedBox(height: 24),
-                        const Text(
-                          'Select Your Role',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: textPrimary,
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardTint,
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Obx(
-                          () => Column(
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _RoleOption(
-                                label: 'Student',
-                                selected:
-                                    controller.selectedRole.value ==
-                                    UserRole.student,
-                                onTap: () {
-                                  controller.selectRole(UserRole.student);
-                                },
+                              Icon(
+                                Icons.verified_user_outlined,
+                                color: AppTheme.primaryGreen,
                               ),
-                              const SizedBox(height: 6),
-                              _RoleOption(
-                                label: 'Teacher',
-                                selected:
-                                    controller.selectedRole.value ==
-                                    UserRole.teacher,
-                                onTap: () {
-                                  controller.selectRole(UserRole.teacher);
-                                },
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'El rol se detecta automaticamente desde tu cuenta institucional en Roble.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: textSecondary,
+                                    height: 1.35,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -145,7 +138,9 @@ class LoginView extends GetView<LoginController> {
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 18,
+                              ),
                             ),
                           ),
                         ),
@@ -170,7 +165,9 @@ class LoginView extends GetView<LoginController> {
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 18,
+                              ),
                             ),
                           ),
                         ),
@@ -224,71 +221,6 @@ class LoginView extends GetView<LoginController> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoleOption extends StatelessWidget {
-  const _RoleOption({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    const textPrimary = Color(0xFF111827);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected
-                      ? AppTheme.primaryGreen
-                      : const Color(0xFFE5E7EB),
-                  width: 1.5,
-                ),
-              ),
-              child: selected
-                  ? const Center(
-                      child: SizedBox(
-                        width: 8,
-                        height: 8,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryGreen,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: textPrimary,
-              ),
-            ),
-          ],
         ),
       ),
     );
