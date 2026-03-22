@@ -89,35 +89,6 @@ class LoginView extends GetView<LoginController> {
                           style: TextStyle(fontSize: 14, color: textSecondary),
                         ),
                         const SizedBox(height: 24),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardTint,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.verified_user_outlined,
-                                color: AppTheme.primaryGreen,
-                              ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'El rol se detecta automaticamente desde tu cuenta institucional en Roble.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: textSecondary,
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
                         const Text(
                           'Email Address',
                           style: TextStyle(

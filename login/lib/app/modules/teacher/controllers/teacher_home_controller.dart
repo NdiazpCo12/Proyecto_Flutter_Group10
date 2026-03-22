@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../login/services/auth_service.dart';
 import '../data/teacher_mock_data.dart';
 import '../models/teacher_models.dart';
 
 class TeacherHomeController extends GetxController {
   final selectedTab = 0.obs;
   final isSyncing = false.obs;
+  final displayName = 'Teacher'.obs;
 
   List<TeacherCourse> get courses => TeacherMockData.courses;
   List<TeacherEvaluation> get evaluations => TeacherMockData.evaluations;
   List<TeacherGroup> get groups => TeacherMockData.groups;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadCurrentUser();
+  }
 
   void changeTab(int index) {
     selectedTab.value = index;
@@ -41,5 +49,16 @@ class TeacherHomeController extends GetxController {
     return evaluations
         .where((evaluation) => evaluation.courseId == courseId)
         .toList();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await Get.find<AuthService>().getStoredUser();
+    final name = user?.name.trim();
+
+    if (name == null || name.isEmpty) {
+      return;
+    }
+
+    displayName.value = name;
   }
 }

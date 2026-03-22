@@ -14,7 +14,7 @@ class LoginController extends GetxController {
 
   final AuthService _authService;
 
-  final emailController = TextEditingController(text: 'student@university.edu');
+  final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
   final isSubmitting = false.obs;
