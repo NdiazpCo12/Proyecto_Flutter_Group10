@@ -1,10 +1,15 @@
 part of 'teacher_home_view.dart';
 
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({required this.course, required this.onTap});
+  const _CourseCard({
+    required this.course,
+    required this.onTap,
+    required this.onManageTap,
+  });
 
   final RobleCourseHome course;
   final VoidCallback onTap;
+  final VoidCallback onManageTap;
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +77,16 @@ class _CourseCard extends StatelessWidget {
                           color: AppTheme.cardTint,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          course.status == 'Closed'
-                              ? Icons.archive_outlined
-                              : Icons.menu_book_outlined,
-                          color: AppTheme.primaryGreen,
-                          size: 28,
+                        child: IconButton(
+                          tooltip: 'Gestionar curso',
+                          onPressed: onManageTap,
+                          icon: Icon(
+                            course.status == 'Closed'
+                                ? Icons.archive_outlined
+                                : Icons.menu_book_outlined,
+                            color: AppTheme.primaryGreen,
+                            size: 28,
+                          ),
                         ),
                       ),
                     ],

@@ -79,4 +79,16 @@ class TeacherHomeController extends GetxController {
       isLoadingCourses.value = false;
     }
   }
+
+  Future<RobleCourseManagementData> loadCourseManagementData(
+    RobleCourseHome course,
+  ) {
+    return _api.getCourseManagementData(course);
+  }
+
+  Future<void> deleteCourse(RobleCourseHome course) async {
+    await _api.deleteCourseCascade(course.id);
+    courses.removeWhere((item) => item.id == course.id);
+    await fetchCourses();
+  }
 }

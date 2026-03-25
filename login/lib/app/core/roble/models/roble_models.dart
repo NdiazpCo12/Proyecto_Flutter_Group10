@@ -288,3 +288,54 @@ class StudentCourseEnrollment {
   final String groupCategoryName;
   final String enrollmentDate;
 }
+
+class RobleCourseRosterEntry {
+  const RobleCourseRosterEntry({
+    required this.studentId,
+    required this.username,
+    required this.orgDefinedId,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.groupId,
+    required this.groupName,
+    required this.groupCode,
+    required this.categoryId,
+    required this.categoryName,
+    required this.enrollmentDate,
+  });
+
+  final String studentId;
+  final String username;
+  final String orgDefinedId;
+  final String firstName;
+  final String lastName;
+  final String email;
+  final String groupId;
+  final String groupName;
+  final String groupCode;
+  final String categoryId;
+  final String categoryName;
+  final String enrollmentDate;
+
+  String get fullName {
+    final fullName = '${firstName.trim()} ${lastName.trim()}'.trim();
+    return fullName.isEmpty ? username : fullName;
+  }
+}
+
+class RobleCourseManagementData {
+  const RobleCourseManagementData({
+    required this.course,
+    required this.categories,
+    required this.roster,
+  });
+
+  final RobleCourseHome course;
+  final List<RobleGroupCategoryRecord> categories;
+  final List<RobleCourseRosterEntry> roster;
+
+  int get groupCount => roster.map((entry) => entry.groupId).toSet().length;
+
+  int get studentCount => roster.map((entry) => entry.studentId).toSet().length;
+}

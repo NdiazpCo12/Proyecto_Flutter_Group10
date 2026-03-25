@@ -4,14 +4,24 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controllers/create_course_controller.dart';
 
-/// Standalone view (not a `part` file) for the "Create Course via CSV" flow.
-/// Navigate to this view with [Get.to(() => const CreateCourseView())].
+/// Standalone view for creating or updating a course from a Brightspace CSV.
 class CreateCourseView extends GetView<CreateCourseController> {
-  const CreateCourseView({super.key});
+  const CreateCourseView({
+    super.key,
+    this.initialCourseName,
+    this.screenTitle = 'Crear Curso',
+    this.submitLabel = 'Cargar CSV',
+  });
+
+  final String? initialCourseName;
+  final String screenTitle;
+  final String submitLabel;
 
   @override
   Widget build(BuildContext context) {
-    final courseNameController = TextEditingController();
+    final courseNameController = TextEditingController(
+      text: initialCourseName ?? '',
+    );
     final formKey = GlobalKey<FormState>();
 
     return Scaffold(
@@ -20,9 +30,9 @@ class CreateCourseView extends GetView<CreateCourseController> {
         backgroundColor: AppTheme.primaryGreen,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Crear Curso',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          screenTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -33,14 +43,13 @@ class CreateCourseView extends GetView<CreateCourseController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Header card ──────────────────────────────────────────
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.08),
+                    color: AppTheme.primaryGreen.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppTheme.primaryGreen.withOpacity(0.25),
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.25),
                     ),
                   ),
                   child: Row(
@@ -71,7 +80,7 @@ class CreateCourseView extends GetView<CreateCourseController> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Sube un CSV con grupos y estudiantes para crear el curso automáticamente.',
+                              'Sube un CSV con grupos y estudiantes para crear o actualizar el curso automaticamente.',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppTheme.textMuted,
@@ -84,10 +93,7 @@ class CreateCourseView extends GetView<CreateCourseController> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
-                // ── Course name field ────────────────────────────────────
                 const Text(
                   'Nombre del Curso',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
@@ -96,7 +102,7 @@ class CreateCourseView extends GetView<CreateCourseController> {
                 TextFormField(
                   controller: courseNameController,
                   decoration: InputDecoration(
-                    hintText: 'Ej. Ingeniería de Software 2025-10',
+                    hintText: 'Ej. Ingenieria de Software 2025-10',
                     prefixIcon: const Icon(Icons.school_outlined),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -107,7 +113,7 @@ class CreateCourseView extends GetView<CreateCourseController> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
+                      borderSide: const BorderSide(
                         color: AppTheme.primaryGreen,
                         width: 2,
                       ),
@@ -119,15 +125,12 @@ class CreateCourseView extends GetView<CreateCourseController> {
                       vertical: 16,
                     ),
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
+                  validator: (value) => (value == null || value.trim().isEmpty)
                       ? 'Campo requerido'
                       : null,
                   textInputAction: TextInputAction.done,
                 ),
-
                 const SizedBox(height: 32),
-
-                // ── CSV format hint ──────────────────────────────────────
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -180,10 +183,7 @@ class CreateCourseView extends GetView<CreateCourseController> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
-                // ── Upload button ────────────────────────────────────────
                 Obx(
                   () => FilledButton.icon(
                     onPressed: controller.isLoading.value
@@ -213,7 +213,9 @@ class CreateCourseView extends GetView<CreateCourseController> {
                           )
                         : const Icon(Icons.upload_rounded),
                     label: Text(
-                      controller.isLoading.value ? 'Procesando…' : 'Cargar CSV',
+                      controller.isLoading.value
+                          ? 'Procesando...'
+                          : submitLabel,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -221,31 +223,31 @@ class CreateCourseView extends GetView<CreateCourseController> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                // ── Live status ──────────────────────────────────────────
                 Obx(() {
-                  final msg = controller.statusMessage.value;
+                  final message = controller.statusMessage.value;
                   final loading = controller.isLoading.value;
-                  if (msg.isEmpty) return const SizedBox.shrink();
+                  if (message.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
 
+                  final isError = message.startsWith('Error');
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: Container(
-                      key: ValueKey(msg),
+                      key: ValueKey(message),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: loading
-                            ? AppTheme.primaryGreen.withOpacity(0.06)
-                            : msg.startsWith('Error')
+                            ? AppTheme.primaryGreen.withValues(alpha: 0.06)
+                            : isError
                             ? Colors.red.shade50
                             : Colors.green.shade50,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: loading
-                              ? AppTheme.primaryGreen.withOpacity(0.2)
-                              : msg.startsWith('Error')
+                              ? AppTheme.primaryGreen.withValues(alpha: 0.2)
+                              : isError
                               ? Colors.red.shade200
                               : Colors.green.shade200,
                         ),
@@ -260,23 +262,23 @@ class CreateCourseView extends GetView<CreateCourseController> {
                             )
                           else
                             Icon(
-                              msg.startsWith('Error')
+                              isError
                                   ? Icons.error_outline_rounded
                                   : Icons.check_circle_outline_rounded,
                               size: 20,
-                              color: msg.startsWith('Error')
+                              color: isError
                                   ? Colors.red.shade600
                                   : Colors.green.shade600,
                             ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              msg,
+                              message,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: loading
                                     ? AppTheme.primaryGreen
-                                    : msg.startsWith('Error')
+                                    : isError
                                     ? Colors.red.shade700
                                     : Colors.green.shade700,
                                 fontWeight: FontWeight.w500,
@@ -288,13 +290,12 @@ class CreateCourseView extends GetView<CreateCourseController> {
                     ),
                   );
                 }),
-
                 const SizedBox(height: 16),
-
-                // ── Progress bar ─────────────────────────────────────────
                 Obx(() {
-                  if (!controller.isLoading.value)
+                  if (!controller.isLoading.value) {
                     return const SizedBox.shrink();
+                  }
+
                   return Column(
                     children: [
                       ClipRRect(

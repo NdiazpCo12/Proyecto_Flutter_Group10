@@ -289,6 +289,159 @@ class RobleApiService {
     return enrollments;
   }
 
+  Future<RobleCourseManagementData> getCourseManagementData(
+    RobleCourseHome course,
+  ) async {
+    final categoryRows = await read(
+      'group_categories',
+      filters: {'course_id': course.id},
+    );
+    final categories =
+        categoryRows
+            .map(RobleGroupCategoryRecord.fromJson)
+            .where((category) => category.id.isNotEmpty)
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+
+    final groupsRows = await read(
+      'course_groups',
+      filters: {'course_id': course.id},
+    );
+    final groups =
+        groupsRows
+            .map(RobleCourseGroupRecord.fromJson)
+            .where((group) => group.id.isNotEmpty)
+            .toList()
+          ..sort((a, b) => a.groupName.compareTo(b.groupName));
+
+    final categoryById = {
+      for (final category in categories) category.id: category,
+    };
+    final studentCache = <String, RobleStudentRecord?>{};
+    final roster = <RobleCourseRosterEntry>[];
+
+    for (final group in groups) {
+      final membershipRows = await read(
+        'group_members',
+        filters: {'group_id': group.id},
+      );
+      final memberships = membershipRows
+          .map(RobleGroupMemberRecord.fromJson)
+          .where((membership) => membership.id.isNotEmpty)
+          .toList();
+
+      for (final membership in memberships) {
+        final student = await _getStudentRecordById(
+          membership.studentId,
+          studentCache,
+        );
+        if (student == null) {
+          continue;
+        }
+
+        final category = categoryById[group.categoryId];
+        roster.add(
+          RobleCourseRosterEntry(
+            studentId: student.id,
+            username: student.username,
+            orgDefinedId: student.orgDefinedId,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email,
+            groupId: group.id,
+            groupName: group.groupName,
+            groupCode: group.groupCode,
+            categoryId: group.categoryId,
+            categoryName: category?.name ?? 'Sin categoria',
+            enrollmentDate: membership.enrollmentDate,
+          ),
+        );
+      }
+    }
+
+    roster.sort((a, b) {
+      final categoryCompare = a.categoryName.compareTo(b.categoryName);
+      if (categoryCompare != 0) {
+        return categoryCompare;
+      }
+
+      final groupCompare = a.groupName.compareTo(b.groupName);
+      if (groupCompare != 0) {
+        return groupCompare;
+      }
+
+      return a.fullName.compareTo(b.fullName);
+    });
+
+    return RobleCourseManagementData(
+      course: course.copyWith(
+        studentCount: roster.map((entry) => entry.studentId).toSet().length,
+      ),
+      categories: categories,
+      roster: roster,
+    );
+  }
+
+  Future<void> deleteCourseCascade(String courseId) async {
+    if (courseId.trim().isEmpty) {
+      return;
+    }
+
+    final categoryRows = await read(
+      'group_categories',
+      filters: {'course_id': courseId},
+    );
+    final categories = categoryRows
+        .map(RobleGroupCategoryRecord.fromJson)
+        .where((category) => category.id.isNotEmpty)
+        .toList();
+
+    final groupRows = await read(
+      'course_groups',
+      filters: {'course_id': courseId},
+    );
+    final groups = groupRows
+        .map(RobleCourseGroupRecord.fromJson)
+        .where((group) => group.id.isNotEmpty)
+        .toList();
+
+    final membershipIds = <String>{};
+    final affectedStudentIds = <String>{};
+
+    for (final group in groups) {
+      final membershipRows = await read(
+        'group_members',
+        filters: {'group_id': group.id},
+      );
+      final memberships = membershipRows
+          .map(RobleGroupMemberRecord.fromJson)
+          .where((membership) => membership.id.isNotEmpty)
+          .toList();
+
+      for (final membership in memberships) {
+        membershipIds.add(membership.id);
+        if (membership.studentId.isNotEmpty) {
+          affectedStudentIds.add(membership.studentId);
+        }
+      }
+    }
+
+    for (final membershipId in membershipIds) {
+      await deleteById('group_members', membershipId);
+    }
+
+    for (final group in groups) {
+      await deleteById('course_groups', group.id);
+    }
+
+    for (final category in categories) {
+      await deleteById('group_categories', category.id);
+    }
+
+    await _deleteStudentsIfOrphaned(affectedStudentIds);
+    await deleteById('courses', courseId);
+  }
+
   Future<RobleCourseGroupRecord?> _getCourseGroupById(
     String groupId,
     Map<String, RobleCourseGroupRecord> cache,
@@ -338,6 +491,28 @@ class RobleApiService {
     final course = RobleCourseHome.fromJson(rows.first);
     cache[courseId] = course;
     return course;
+  }
+
+  Future<RobleStudentRecord?> _getStudentRecordById(
+    String studentId,
+    Map<String, RobleStudentRecord?> cache,
+  ) async {
+    if (studentId.isEmpty) {
+      return null;
+    }
+    if (cache.containsKey(studentId)) {
+      return cache[studentId];
+    }
+
+    final rows = await read('students', filters: {'_id': studentId});
+    if (rows.isEmpty) {
+      cache[studentId] = null;
+      return null;
+    }
+
+    final student = RobleStudentRecord.fromJson(rows.first);
+    cache[studentId] = student;
+    return student;
   }
 
   Future<_CourseStats> _getCourseStats(String courseId) async {
@@ -394,6 +569,23 @@ class RobleApiService {
 
   /// Resets the cached Dio instance so the next request picks up a fresh token.
   void resetClient() => _dio = null;
+
+  Future<void> _deleteStudentsIfOrphaned(Iterable<String> studentIds) async {
+    for (final studentId in studentIds) {
+      final trimmedStudentId = studentId.trim();
+      if (trimmedStudentId.isEmpty) {
+        continue;
+      }
+
+      final remainingMemberships = await read(
+        'group_members',
+        filters: {'student_id': trimmedStudentId},
+      );
+      if (remainingMemberships.isEmpty) {
+        await deleteById('students', trimmedStudentId);
+      }
+    }
+  }
 }
 
 class _CourseStats {

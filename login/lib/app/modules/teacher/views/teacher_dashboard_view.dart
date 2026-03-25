@@ -15,7 +15,7 @@ class _TeacherDashboard extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(24, 28, 24, 20),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
               child: Obx(
                 () => Text(
                   'Welcome back, ${controller.displayName.value}!',
@@ -147,7 +147,7 @@ class _TeacherDashboard extends StatelessWidget {
               Obx(() {
                 if (controller.isLoadingCourses.value) {
                   return const Padding(
-                    padding: EdgeInsets.all(40.0),
+                    padding: EdgeInsets.all(40),
                     child: Center(
                       child: CircularProgressIndicator(
                         color: AppTheme.primaryGreen,
@@ -158,7 +158,7 @@ class _TeacherDashboard extends StatelessWidget {
 
                 if (controller.courses.isEmpty) {
                   return const Padding(
-                    padding: EdgeInsets.all(40.0),
+                    padding: EdgeInsets.all(40),
                     child: Center(
                       child: Text(
                         'No hay cursos registrados',
@@ -176,11 +176,13 @@ class _TeacherDashboard extends StatelessWidget {
                           child: _CourseCard(
                             course: course,
                             onTap: () {
-                              // TODO: Migrate TeacherCourseDetailView to use RobleCourseHome
-                              Get.snackbar(
-                                'Detalles',
-                                'Aún no vinculado: ${course.name}',
-                                snackPosition: SnackPosition.BOTTOM,
+                              Get.to(
+                                () => TeacherCourseDetailView(course: course),
+                              );
+                            },
+                            onManageTap: () {
+                              Get.to(
+                                () => TeacherCourseDetailView(course: course),
                               );
                             },
                           ),
