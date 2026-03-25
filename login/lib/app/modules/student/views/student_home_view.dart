@@ -8,6 +8,8 @@ import '../../login/bindings/login_binding.dart';
 import '../../login/models/auth_user.dart';
 import '../../login/services/auth_service.dart';
 import '../../login/views/login_view.dart';
+import '../../teacher/data/roble_api_service.dart';
+import '../../teacher/models/roble_models.dart';
 
 part 'student_dashboard_view.dart';
 part 'student_shared_widgets.dart';
@@ -29,6 +31,10 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   bool _assessmentReminders = true;
   bool _newResults = true;
   String _displayName = 'Student';
+  bool _isLoadingCourses = true;
+  List<RobleCourseHome> _courses = [];
+  final RobleApiService _api = RobleApiService();
+
   final List<_StudentAssessment> _assessments = _buildMockAssessments();
   static const _resultsSummary = _StudentResultsSummary(
     overallScore: 4.5,
@@ -59,37 +65,29 @@ class _StudentHomeViewState extends State<StudentHomeView> {
     ],
   );
 
-  static const _courses = [
-    _StudentCourse(
-      name: 'Software Engineering',
-      code: 'CS 401',
-      students: 45,
-      activeAssessments: 2,
-    ),
-    _StudentCourse(
-      name: 'Data Structures',
-      code: 'CS 302',
-      students: 38,
-      activeAssessments: 1,
-    ),
-    _StudentCourse(
-      name: 'Mobile Development',
-      code: 'CS 330',
-      students: 32,
-      activeAssessments: 3,
-    ),
-    _StudentCourse(
-      name: 'UI Design',
-      code: 'CS 220',
-      students: 26,
-      activeAssessments: 1,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    setState(() => _isLoadingCourses = true);
+    try {
+      final fetched = await _api.getCourses('');
+      if (!mounted) return;
+      setState(() {
+        _courses = fetched;
+        _isLoadingCourses = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingCourses = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   Future<void> _loadCurrentUser() async {
@@ -111,10 +109,9 @@ class _StudentHomeViewState extends State<StudentHomeView> {
     }
 
     setState(() => _isSyncing = true);
-    await Future<void>.delayed(const Duration(milliseconds: 1000));
-    if (!mounted) {
-      return;
-    }
+    await _fetchCourses();
+    if (!mounted) return;
+
     setState(() => _isSyncing = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Courses synced successfully.')),
@@ -129,6 +126,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
         children: [
           _StudentDashboard(
             isSyncing: _isSyncing,
+            isLoadingCourses: _isLoadingCourses,
             onSync: _sync,
             courses: _courses,
             displayName: _displayName,
@@ -181,20 +179,6 @@ class _StudentHomeViewState extends State<StudentHomeView> {
       ),
     );
   }
-}
-
-class _StudentCourse {
-  const _StudentCourse({
-    required this.name,
-    required this.code,
-    required this.students,
-    required this.activeAssessments,
-  });
-
-  final String name;
-  final String code;
-  final int students;
-  final int activeAssessments;
 }
 
 class _StudentAssessment {

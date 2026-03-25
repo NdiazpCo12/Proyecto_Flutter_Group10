@@ -1,5 +1,6 @@
 /// Models for the ROBLE database tables used in course creation.
-/// Each model has a [toJson] method that produces the payload for
+
+/// Data models for parsing CSV exports and sending structured data to
 /// the ROBLE POST /:dbName/insert endpoint.
 
 class RobleCourse {
@@ -166,4 +167,38 @@ class CsvRow {
   final String lastName;
   final String email;
   final String enrollmentDate;
+}
+
+class RobleCourseHome {
+  RobleCourseHome({
+    required this.id,
+    required this.name,
+    required this.code,
+    required this.teacherEmail,
+    required this.createdAt,
+    this.status = 'Active',
+    this.studentCount = 25,
+    this.pendingEvaluations = 3,
+  });
+
+  final String id;
+  final String name;
+  final String code;
+  final String teacherEmail;
+  final DateTime createdAt;
+  final String status;
+  final int studentCount;
+  final int pendingEvaluations;
+
+  factory RobleCourseHome.fromJson(Map<String, dynamic> json) {
+    return RobleCourseHome(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      name: json['name'] as String? ?? 'No Name',
+      code: json['code'] as String? ?? 'No Code',
+      teacherEmail: json['teacher_email']?.toString() ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
 }

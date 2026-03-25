@@ -3,14 +3,16 @@ part of 'student_home_view.dart';
 class _StudentDashboard extends StatelessWidget {
   const _StudentDashboard({
     required this.isSyncing,
+    required this.isLoadingCourses,
     required this.onSync,
     required this.courses,
     required this.displayName,
   });
 
   final bool isSyncing;
+  final bool isLoadingCourses;
   final VoidCallback onSync;
-  final List<_StudentCourse> courses;
+  final List<RobleCourseHome> courses;
   final String displayName;
 
   @override
@@ -121,12 +123,32 @@ class _StudentDashboard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              ...courses.map(
-                (course) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _StudentCourseCard(course: course),
+              if (isLoadingCourses)
+                const Padding(
+                  padding: EdgeInsets.all(40.0),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryGreen,
+                    ),
+                  ),
+                )
+              else if (courses.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(40.0),
+                  child: Center(
+                    child: Text(
+                      'No hay cursos registrados',
+                      style: TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
+                )
+              else
+                ...courses.map(
+                  (course) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _StudentCourseCard(course: course),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

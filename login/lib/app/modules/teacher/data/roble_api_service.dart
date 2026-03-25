@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/config/roble_config.dart';
 import '../../../core/storage/session_storage_service.dart';
+import '../models/roble_models.dart';
 
 /// Handles all HTTP requests to the ROBLE database API.
 /// Uses the access token persisted by [SessionStorageService] after login.
@@ -15,17 +16,19 @@ class RobleApiService {
 
   Future<Dio> _client() async {
     final token = await _storage.getAccessToken();
-    return _dio ??= Dio(
-      BaseOptions(
-        baseUrl: RobleConfig.dbBaseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer ${token ?? ''}',
-        },
-      ),
-    );
+    if (_dio == null) {
+      _dio = Dio(
+        BaseOptions(
+          baseUrl: RobleConfig.dbBaseUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        ),
+      );
+    }
+    // Update token dynamically just in case it was refreshed or null on startup
+    _dio!.options.headers['Authorization'] = 'Bearer ${token ?? ''}';
+    return _dio!;
   }
 
   Map<String, dynamic> _sanitizePayload(Map<String, dynamic> data) {
@@ -86,6 +89,66 @@ class RobleApiService {
     } on DioException catch (e) {
       final msg = e.response?.data?.toString() ?? e.message ?? e.toString();
       throw Exception('ROBLE insert error [$table]: $msg');
+    } catch (e) {
+      throw Exception('Internal error processing ROBLE API connection: $e');
+    }
+  }
+
+  /// Fetches courses for the given teacher email from ROBLE `courses` table.
+  Future<List<RobleCourseHome>> getCourses(String teacherEmail) async {
+    final client = await _client();
+    final token = await _storage.getAccessToken();
+    try {
+      print('=== Solicitando cursos ===');
+      print('URL: ${client.options.baseUrl}/read?tableName=courses');
+      print('Token enviado: $token');
+
+      final response = await client.get(
+        '/read',
+        queryParameters: {'tableName': 'courses'},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${token ?? ''}',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      print('Respuesta RAW de ROBLE: ${response.data}');
+      final body = response.data;
+
+      print('Filtrando cursos para el email: $teacherEmail');
+
+      if (body is List) {
+        final list = body;
+        final mapped = list
+            .map((e) {
+              final json = e as Map<String, dynamic>;
+              print('Mapeando curso JSON: $json');
+              return RobleCourseHome.fromJson(json);
+            })
+            .where(
+              (c) =>
+                  teacherEmail.isEmpty ||
+                  c.teacherEmail.toLowerCase() == teacherEmail.toLowerCase(),
+            )
+            .toList();
+
+        print('Cursos obtenidos despues de filtro: ${mapped.length}');
+        // Sort newest first
+        mapped.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return mapped;
+      }
+
+      print('El body no tenia el formato esperado de List.');
+      return [];
+    } catch (e) {
+      if (e is DioException) {
+        print('Error response status: ${e.response?.statusCode}');
+        print('Error response data: ${e.response?.data}');
+      }
+      print('Error en getCourses: $e');
+      throw Exception('No se pudieron obtener los cursos: $e');
     }
   }
 

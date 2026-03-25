@@ -3,7 +3,7 @@ part of 'teacher_home_view.dart';
 class _CourseCard extends StatelessWidget {
   const _CourseCard({required this.course, required this.onTap});
 
-  final TeacherCourse course;
+  final RobleCourseHome course;
   final VoidCallback onTap;
 
   @override

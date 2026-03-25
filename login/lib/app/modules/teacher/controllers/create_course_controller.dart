@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../login/services/auth_service.dart';
+import '../controllers/teacher_home_controller.dart';
 import '../data/roble_api_service.dart';
 import '../models/roble_models.dart';
 
@@ -137,6 +138,7 @@ class CreateCourseController extends GetxController {
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 4),
       );
+      Get.find<TeacherHomeController>().fetchCourses();
     } catch (e) {
       _setStatus('Error: ${e.toString()}');
       Get.snackbar(

@@ -3,7 +3,7 @@ part of 'student_home_view.dart';
 class _StudentCourseCard extends StatelessWidget {
   const _StudentCourseCard({required this.course});
 
-  final _StudentCourse course;
+  final RobleCourseHome course;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +84,7 @@ class _StudentCourseCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '${course.students} students',
+                      '${course.studentCount} students',
                       style: const TextStyle(
                         color: AppTheme.textMuted,
                         fontSize: 15,
@@ -102,7 +102,7 @@ class _StudentCourseCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '${course.activeAssessments} active assessments',
+                      '${course.pendingEvaluations} active assessments',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,

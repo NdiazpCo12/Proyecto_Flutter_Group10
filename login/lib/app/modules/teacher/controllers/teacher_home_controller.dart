@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../login/services/auth_service.dart';
+import '../data/roble_api_service.dart';
 import '../data/teacher_mock_data.dart';
+import '../models/roble_models.dart';
 import '../models/teacher_models.dart';
 
 class TeacherHomeController extends GetxController {
@@ -10,14 +12,19 @@ class TeacherHomeController extends GetxController {
   final isSyncing = false.obs;
   final displayName = 'Teacher'.obs;
 
-  List<TeacherCourse> get courses => TeacherMockData.courses;
+  final isLoadingCourses = true.obs;
+  final courses = <RobleCourseHome>[].obs;
+
   List<TeacherEvaluation> get evaluations => TeacherMockData.evaluations;
   List<TeacherGroup> get groups => TeacherMockData.groups;
+
+  final RobleApiService _api = RobleApiService();
 
   @override
   void onInit() {
     super.onInit();
     _loadCurrentUser();
+    fetchCourses();
   }
 
   void changeTab(int index) {
@@ -55,10 +62,22 @@ class TeacherHomeController extends GetxController {
     final user = await Get.find<AuthService>().getStoredUser();
     final name = user?.name.trim();
 
-    if (name == null || name.isEmpty) {
-      return;
+    if (name != null && name.isNotEmpty) {
+      displayName.value = name;
     }
+  }
 
-    displayName.value = name;
+  Future<void> fetchCourses() async {
+    isLoadingCourses.value = true;
+    try {
+      final user = await Get.find<AuthService>().getStoredUser();
+      final email = user?.email ?? 'profesor@uninorte.edu.co';
+      final fetched = await _api.getCourses(email);
+      courses.value = fetched;
+    } catch (e) {
+      Get.snackbar('Error', 'No se pudieron sincronizar los cursos de ROBLE.');
+    } finally {
+      isLoadingCourses.value = false;
+    }
   }
 }

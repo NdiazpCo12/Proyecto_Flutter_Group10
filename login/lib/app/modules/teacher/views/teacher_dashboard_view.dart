@@ -7,8 +7,6 @@ class _TeacherDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final courses = controller.courses;
-
     return ListView(
       padding: const EdgeInsets.only(bottom: 120),
       children: [
@@ -109,11 +107,13 @@ class _TeacherDashboard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    '${courses.length} courses',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppTheme.textMuted,
+                  Obx(
+                    () => Text(
+                      '${controller.courses.length} courses',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppTheme.textMuted,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -144,17 +144,51 @@ class _TeacherDashboard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              ...courses.map(
-                (course) => Padding(
-                  padding: const EdgeInsets.only(bottom: 18),
-                  child: _CourseCard(
-                    course: course,
-                    onTap: () {
-                      Get.to(() => TeacherCourseDetailView(course: course));
-                    },
-                  ),
-                ),
-              ),
+              Obx(() {
+                if (controller.isLoadingCourses.value) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryGreen,
+                      ),
+                    ),
+                  );
+                }
+
+                if (controller.courses.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(
+                      child: Text(
+                        'No hay cursos registrados',
+                        style: TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: controller.courses
+                      .map(
+                        (course) => Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: _CourseCard(
+                            course: course,
+                            onTap: () {
+                              // TODO: Migrate TeacherCourseDetailView to use RobleCourseHome
+                              Get.snackbar(
+                                'Detalles',
+                                'Aún no vinculado: ${course.name}',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                            },
+                          ),
+                        ),
+                      )
+                      .toList(),
+                );
+              }),
             ],
           ),
         ),
