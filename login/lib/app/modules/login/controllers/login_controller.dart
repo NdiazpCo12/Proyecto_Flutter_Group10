@@ -9,15 +9,15 @@ import '../models/auth_user.dart';
 import '../services/auth_service.dart';
 
 class LoginController extends GetxController {
-  static const fixedPassword = 'ThePassword!1';
-
   LoginController({required AuthService authService})
     : _authService = authService;
 
   final AuthService _authService;
 
   final emailController = TextEditingController();
-  final passwordController = TextEditingController(text: fixedPassword);
+  final passwordController = TextEditingController(
+    text: AuthService.defaultUserPassword,
+  );
 
   final isSubmitting = false.obs;
 
@@ -27,7 +27,7 @@ class LoginController extends GetxController {
     }
 
     final email = emailController.text.trim();
-    final password = fixedPassword;
+    final password = AuthService.defaultUserPassword;
 
     if (email.isEmpty) {
       Get.snackbar(

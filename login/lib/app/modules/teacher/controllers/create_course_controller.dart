@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/errors/auth_exception.dart';
 import '../../../core/roble/roble.dart';
 import '../../login/services/auth_service.dart';
 import '../controllers/teacher_home_controller.dart';
@@ -62,6 +63,9 @@ class CreateCourseController extends GetxController {
       final authService = Get.find<AuthService>();
       final user = await authService.getStoredUser();
       final teacherEmail = user?.email ?? 'profesor@uninorte.edu.co';
+
+      _setStatus('Registrando cuentas de estudiantes...');
+      await _ensureStudentAccounts(rows, authService);
 
       final courseId = await _resolveCourseId(
         courseName: trimmedCourseName,
@@ -347,6 +351,45 @@ class CreateCourseController extends GetxController {
     return seen;
   }
 
+  Future<void> _ensureStudentAccounts(
+    List<CsvRow> rows,
+    AuthService authService,
+  ) async {
+    final studentsByEmail = <String, CsvRow>{};
+
+    for (final row in rows) {
+      final normalizedEmail = _normalizeEmail(row.email);
+      if (normalizedEmail.isEmpty) {
+        continue;
+      }
+      studentsByEmail.putIfAbsent(normalizedEmail, () => row);
+    }
+
+    final total = studentsByEmail.length;
+    var done = 0;
+
+    for (final entry in studentsByEmail.entries) {
+      final email = entry.key;
+      final row = entry.value;
+
+      try {
+        await authService.signUpDirect(
+          email: email,
+          password: AuthService.defaultUserPassword,
+          name: _buildStudentName(row),
+        );
+      } on AuthException catch (error) {
+        if (!_isExistingAccountError(error)) {
+          rethrow;
+        }
+      }
+
+      done++;
+      progress.value = total == 0 ? 0 : done / total;
+      _setStatus('Cuentas de estudiantes: $done procesadas...');
+    }
+  }
+
   Future<Map<String, String>> _resolveStudentIds(List<CsvRow> rows) async {
     final seen = <String, String>{};
     final uniqueEmails = rows
@@ -437,6 +480,31 @@ class CreateCourseController extends GetxController {
   void _setStatus(String msg) => statusMessage.value = msg;
 
   String _normalizeEmail(String email) => email.trim().toLowerCase();
+
+  String _buildStudentName(CsvRow row) {
+    final fullName = '${row.firstName.trim()} ${row.lastName.trim()}'.trim();
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+    if (row.username.trim().isNotEmpty) {
+      return row.username.trim();
+    }
+
+    final email = _normalizeEmail(row.email);
+    return email.isNotEmpty ? email.split('@').first : 'Estudiante';
+  }
+
+  bool _isExistingAccountError(AuthException error) {
+    final message = error.message.toLowerCase();
+    return error.statusCode == 409 ||
+        message.contains('already') ||
+        message.contains('exists') ||
+        message.contains('exist') ||
+        message.contains('duplicate') ||
+        message.contains('duplicado') ||
+        message.contains('ya existe') ||
+        message.contains('registrado');
+  }
 
   String _formatSpanishDate(String date) {
     if (date.isEmpty) {

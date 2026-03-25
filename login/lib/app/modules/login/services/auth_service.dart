@@ -9,6 +9,8 @@ import '../models/auth_session.dart';
 import '../models/auth_user.dart';
 
 class AuthService {
+  static const defaultUserPassword = 'ThePassword!1';
+
   AuthService({required SessionStorageService storage, http.Client? client})
     : _storage = storage,
       _client = client ?? http.Client();
