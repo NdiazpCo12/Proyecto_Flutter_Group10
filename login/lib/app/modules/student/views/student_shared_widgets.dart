@@ -3,7 +3,7 @@ part of 'student_home_view.dart';
 class _StudentCourseCard extends StatelessWidget {
   const _StudentCourseCard({required this.course});
 
-  final RobleCourseHome course;
+  final StudentCourseEnrollment course;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +43,7 @@ class _StudentCourseCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            course.name,
+                            course.course.name,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -51,7 +51,7 @@ class _StudentCourseCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            course.code,
+                            course.course.code,
                             style: const TextStyle(
                               color: AppTheme.textMuted,
                               fontSize: 14,
@@ -84,10 +84,30 @@ class _StudentCourseCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '${course.studentCount} students',
+                      course.groupName,
                       style: const TextStyle(
                         color: AppTheme.textMuted,
                         fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.category_outlined,
+                      size: 18,
+                      color: AppTheme.textMuted,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        course.groupCategoryName,
+                        style: const TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                   ],
@@ -102,7 +122,7 @@ class _StudentCourseCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      '${course.pendingEvaluations} active assessments',
+                      'Group code: ${course.groupCode}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,

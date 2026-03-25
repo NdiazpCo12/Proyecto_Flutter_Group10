@@ -32,7 +32,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   bool _newResults = true;
   String _displayName = 'Student';
   bool _isLoadingCourses = true;
-  List<RobleCourseHome> _courses = [];
+  List<StudentCourseEnrollment> _courses = [];
   final RobleApiService _api = RobleApiService();
 
   final List<_StudentAssessment> _assessments = _buildMockAssessments();
@@ -75,7 +75,9 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   Future<void> _fetchCourses() async {
     setState(() => _isLoadingCourses = true);
     try {
-      final fetched = await _api.getCourses('');
+      final user = await Get.find<AuthService>().getStoredUser();
+      final email = user?.email ?? '';
+      final fetched = await _api.getStudentEnrollments(email);
       if (!mounted) return;
       setState(() {
         _courses = fetched;

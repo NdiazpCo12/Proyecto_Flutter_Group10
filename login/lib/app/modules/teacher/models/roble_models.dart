@@ -202,3 +202,117 @@ class RobleCourseHome {
     );
   }
 }
+
+class RobleStudentRecord {
+  RobleStudentRecord({
+    required this.id,
+    required this.username,
+    required this.orgDefinedId,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+  });
+
+  final String id;
+  final String username;
+  final String orgDefinedId;
+  final String firstName;
+  final String lastName;
+  final String email;
+
+  factory RobleStudentRecord.fromJson(Map<String, dynamic> json) {
+    return RobleStudentRecord(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      username: json['username']?.toString() ?? '',
+      orgDefinedId: json['org_defined_id']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+    );
+  }
+}
+
+class RobleGroupMemberRecord {
+  RobleGroupMemberRecord({
+    required this.id,
+    required this.groupId,
+    required this.studentId,
+    required this.enrollmentDate,
+  });
+
+  final String id;
+  final String groupId;
+  final String studentId;
+  final String enrollmentDate;
+
+  factory RobleGroupMemberRecord.fromJson(Map<String, dynamic> json) {
+    return RobleGroupMemberRecord(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      groupId: json['group_id']?.toString() ?? '',
+      studentId: json['student_id']?.toString() ?? '',
+      enrollmentDate: json['enrollment_date']?.toString() ?? '',
+    );
+  }
+}
+
+class RobleCourseGroupRecord {
+  RobleCourseGroupRecord({
+    required this.id,
+    required this.courseId,
+    required this.categoryId,
+    required this.groupName,
+    required this.groupCode,
+  });
+
+  final String id;
+  final String courseId;
+  final String categoryId;
+  final String groupName;
+  final String groupCode;
+
+  factory RobleCourseGroupRecord.fromJson(Map<String, dynamic> json) {
+    return RobleCourseGroupRecord(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      courseId: json['course_id']?.toString() ?? '',
+      categoryId: json['category_id']?.toString() ?? '',
+      groupName: json['group_name']?.toString() ?? '',
+      groupCode: json['group_code']?.toString() ?? '',
+    );
+  }
+}
+
+class RobleGroupCategoryRecord {
+  RobleGroupCategoryRecord({
+    required this.id,
+    required this.courseId,
+    required this.name,
+  });
+
+  final String id;
+  final String courseId;
+  final String name;
+
+  factory RobleGroupCategoryRecord.fromJson(Map<String, dynamic> json) {
+    return RobleGroupCategoryRecord(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      courseId: json['course_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+    );
+  }
+}
+
+class StudentCourseEnrollment {
+  StudentCourseEnrollment({
+    required this.course,
+    required this.groupName,
+    required this.groupCode,
+    required this.groupCategoryName,
+    required this.enrollmentDate,
+  });
+
+  final RobleCourseHome course;
+  final String groupName;
+  final String groupCode;
+  final String groupCategoryName;
+  final String enrollmentDate;
+}

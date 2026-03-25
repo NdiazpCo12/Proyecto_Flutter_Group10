@@ -12,7 +12,7 @@ class _StudentDashboard extends StatelessWidget {
   final bool isSyncing;
   final bool isLoadingCourses;
   final VoidCallback onSync;
-  final List<RobleCourseHome> courses;
+  final List<StudentCourseEnrollment> courses;
   final String displayName;
 
   @override
