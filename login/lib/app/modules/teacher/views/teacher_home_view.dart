@@ -8,6 +8,7 @@ import '../../login/services/auth_service.dart';
 import '../../login/views/login_view.dart';
 import '../controllers/teacher_home_controller.dart';
 import '../models/teacher_models.dart';
+import 'create_course_view.dart';
 
 part 'teacher_ui_state.dart';
 part 'teacher_course_detail_view.dart';

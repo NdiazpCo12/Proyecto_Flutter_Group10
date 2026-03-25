@@ -116,6 +116,31 @@ class _TeacherDashboard extends StatelessWidget {
                       color: AppTheme.textMuted,
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message: 'Crear Curso',
+                    child: FilledButton.icon(
+                      onPressed: () => Get.to(() => const CreateCourseView()),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryGreen,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text(
+                        'Crear',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
