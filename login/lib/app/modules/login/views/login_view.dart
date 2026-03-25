@@ -129,9 +129,10 @@ class LoginView extends GetView<LoginController> {
                           icon: Icons.lock_outline,
                           child: TextField(
                             controller: controller.passwordController,
+                            readOnly: true,
+                            enableInteractiveSelection: false,
                             obscureText: true,
                             decoration: const InputDecoration(
-                              hintText: 'Enter your password',
                               filled: false,
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
