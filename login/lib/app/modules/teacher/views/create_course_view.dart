@@ -168,6 +168,15 @@ class CreateCourseView extends GetView<CreateCourseController> {
                           height: 1.5,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Si la categoria ya existe en ese curso, se reemplazan sus grupos y membresias antes de importar el nuevo CSV.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade700,
+                          height: 1.4,
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../../core/config/roble_config.dart';
+import '../../../core/roble/roble_config.dart';
 import '../../../core/errors/auth_exception.dart';
 import '../../../core/storage/session_storage_service.dart';
 import '../models/auth_session.dart';

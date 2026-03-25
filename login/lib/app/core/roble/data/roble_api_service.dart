@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
-import '../../../core/config/roble_config.dart';
-import '../../../core/storage/session_storage_service.dart';
+import '../../storage/session_storage_service.dart';
 import '../models/roble_models.dart';
+import '../roble_config.dart';
 
 /// Handles all HTTP requests to the ROBLE database API.
 /// Uses the access token persisted by [SessionStorageService] after login.
@@ -16,17 +16,14 @@ class RobleApiService {
 
   Future<Dio> _client() async {
     final token = await _storage.getAccessToken();
-    if (_dio == null) {
-      _dio = Dio(
-        BaseOptions(
-          baseUrl: RobleConfig.dbBaseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        ),
-      );
-    }
-    // Update token dynamically just in case it was refreshed or null on startup
+    _dio ??= Dio(
+      BaseOptions(
+        baseUrl: RobleConfig.dbBaseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      ),
+    );
     _dio!.options.headers['Authorization'] = 'Bearer ${token ?? ''}';
     return _dio!;
   }
@@ -85,9 +82,6 @@ class RobleApiService {
   }
 
   /// Inserts [data] into [table] and returns the auto-generated `_id`.
-  ///
-  /// ROBLE endpoint: POST /:dbName/insert
-  /// Expected response: `{ "_id": "...", ... }`
   Future<String> insert(String table, Map<String, dynamic> data) async {
     final client = await _client();
     final sanitizedData = _sanitizePayload(data);
@@ -114,14 +108,14 @@ class RobleApiService {
           final id = firstRecord['_id'] ?? firstRecord['id'];
 
           if (id != null) {
-            print('ID capturado con éxito: $id');
+            print('ID capturado con exito: $id');
             return id.toString();
           }
         }
       }
 
       throw Exception(
-        'La API no devolvió un _id válido para la tabla "$table".\n'
+        'La API no devolvio un _id valido para la tabla "$table".\n'
         'Respuesta completa: $body',
       );
     } on DioException catch (e) {
@@ -130,6 +124,36 @@ class RobleApiService {
     } catch (e) {
       throw Exception('Internal error processing ROBLE API connection: $e');
     }
+  }
+
+  /// Deletes a record from [table] using [idColumn] and [idValue].
+  Future<void> delete(
+    String table, {
+    required String idColumn,
+    required String idValue,
+  }) async {
+    final trimmedId = idValue.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+
+    final client = await _client();
+    final payload = {
+      'tableName': table,
+      'idColumn': idColumn,
+      'idValue': trimmedId,
+    };
+
+    try {
+      await client.delete('/delete', data: payload);
+    } on DioException catch (e) {
+      final msg = e.response?.data?.toString() ?? e.message ?? e.toString();
+      throw Exception('ROBLE delete error [$table]: $msg');
+    }
+  }
+
+  Future<void> deleteById(String table, String idValue) {
+    return delete(table, idColumn: '_id', idValue: idValue);
   }
 
   /// Fetches courses for the given teacher email from ROBLE `courses` table.
@@ -158,8 +182,7 @@ class RobleApiService {
       print('Filtrando cursos para el email: $teacherEmail');
 
       if (body is List) {
-        final list = body;
-        final mapped = list
+        final mapped = body
             .map((e) {
               final json = e as Map<String, dynamic>;
               print('Mapeando curso JSON: $json');
@@ -175,15 +198,10 @@ class RobleApiService {
         final enriched = <RobleCourseHome>[];
         for (final course in mapped) {
           final stats = await _getCourseStats(course.id);
-          enriched.add(
-            course.copyWith(
-              studentCount: stats.studentCount,
-            ),
-          );
+          enriched.add(course.copyWith(studentCount: stats.studentCount));
         }
 
         print('Cursos obtenidos despues de filtro: ${enriched.length}');
-        // Sort newest first
         enriched.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return enriched;
       }
@@ -224,9 +242,7 @@ class RobleApiService {
         'group_members',
         filters: {'student_id': student.id},
       );
-      memberships.addAll(
-        membershipRows.map(RobleGroupMemberRecord.fromJson),
-      );
+      memberships.addAll(membershipRows.map(RobleGroupMemberRecord.fromJson));
     }
 
     if (memberships.isEmpty) {
@@ -376,8 +392,7 @@ class RobleApiService {
     return ids;
   }
 
-  /// Resets the cached Dio instance, allowing the next call to [_client] to
-  /// pick up a fresh access token (useful after token refresh).
+  /// Resets the cached Dio instance so the next request picks up a fresh token.
   void resetClient() => _dio = null;
 }
 

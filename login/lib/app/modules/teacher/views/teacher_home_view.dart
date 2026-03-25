@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/roble/roble.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../login/bindings/login_binding.dart';
 import '../../login/models/auth_user.dart';
 import '../../login/services/auth_service.dart';
 import '../../login/views/login_view.dart';
 import '../controllers/teacher_home_controller.dart';
-import '../models/roble_models.dart';
 import '../models/teacher_models.dart';
 import 'create_course_view.dart';
 

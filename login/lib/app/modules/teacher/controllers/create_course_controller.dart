@@ -5,10 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/roble/roble.dart';
 import '../../login/services/auth_service.dart';
 import '../controllers/teacher_home_controller.dart';
-import '../data/roble_api_service.dart';
-import '../models/roble_models.dart';
+import '../models/csv_row.dart';
 
 class CreateCourseController extends GetxController {
   CreateCourseController({RobleApiService? apiService})
@@ -20,17 +20,9 @@ class CreateCourseController extends GetxController {
   final statusMessage = ''.obs;
   final progress = 0.0.obs;
 
-  String? _cachedCourseId;
-  String? _cachedCategoryId;
-
-  // ── Public entry point ────────────────────────────────────────────────────
-
-  /// Called from the view after the user enters the course name and taps
-  /// "Cargar CSV". Opens the file picker, parses the CSV, and uploads
-  /// all records to ROBLE in the correct hierarchical order.
   Future<void> pickAndUpload(String courseName) async {
-    final trimmed = courseName.trim();
-    if (trimmed.isEmpty) {
+    final trimmedCourseName = courseName.trim();
+    if (trimmedCourseName.isEmpty) {
       Get.snackbar(
         'Campo requerido',
         'Por favor ingresa el nombre del curso.',
@@ -42,96 +34,65 @@ class CreateCourseController extends GetxController {
       return;
     }
 
-    // ── 1. Pick file ─────────────────────────────────────────────────────
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
 
-    if (result == null || result.files.isEmpty) return;
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
 
     isLoading.value = true;
     progress.value = 0;
 
+    var replacedExistingCategory = false;
+    var categoryName = '';
+
     try {
-      // ── 2. Parse CSV ───────────────────────────────────────────────────
-      _setStatus('Leyendo archivo CSV…');
+      _setStatus('Leyendo archivo CSV...');
       final rows = await _parseCsv(result.files.first);
 
       if (rows.isEmpty) {
-        throw Exception('El archivo CSV está vacío o no tiene filas válidas.');
+        throw Exception('El archivo CSV esta vacio o no tiene filas validas.');
       }
 
-      // ── 3. Get Auth User & Insert course ─────────────────────────────────
-      String courseId;
-      if (_cachedCourseId != null) {
-        _setStatus('Reutilizando curso "$trimmed" (_id: $_cachedCourseId)…');
-        courseId = _cachedCourseId!;
-      } else {
-        _setStatus('Creando curso "$trimmed"…');
-        final authService = Get.find<AuthService>();
-        final user = await authService.getStoredUser();
-        final teacherEmail = user?.email ?? 'profesor@uninorte.edu.co';
+      categoryName = _resolveCategoryName(rows);
 
-        final courseCode = rows.first.groupCode.isNotEmpty
-            ? rows.first.groupCode
-            : trimmed.replaceAll(' ', '_').toUpperCase();
+      final authService = Get.find<AuthService>();
+      final user = await authService.getStoredUser();
+      final teacherEmail = user?.email ?? 'profesor@uninorte.edu.co';
 
-        final courseObj = RobleCourse(
-          name: trimmed,
-          code: courseCode,
-          description: rows.first.groupCategoryName.isNotEmpty
-              ? rows.first.groupCategoryName
-              : 'Curso importado desde CSV',
-          teacherEmail: teacherEmail,
-        );
-        print('=== Enviando payload a courses ===\n${courseObj.toJson()}');
+      final courseId = await _resolveCourseId(
+        courseName: trimmedCourseName,
+        teacherEmail: teacherEmail,
+        rows: rows,
+      );
 
-        courseId = await _api.insert('courses', courseObj.toJson());
-        _cachedCourseId = courseId;
-      }
+      final categoryResult = await _prepareCategoryForUpload(
+        courseId: courseId,
+        categoryName: categoryName,
+      );
+      replacedExistingCategory = categoryResult.replacedExistingData;
 
-      // ── 4. Insert unique group category ───────────────────────────────
-      String categoryId;
-      if (_cachedCategoryId != null) {
-        _setStatus('Reutilizando categoría (_id: $_cachedCategoryId)…');
-        categoryId = _cachedCategoryId!;
-      } else {
-        var categoryName = rows.first.groupCategoryName;
-        if (categoryName.isEmpty) categoryName = 'Categoría General';
+      _setStatus('Creando grupos...');
+      final groupIds = await _insertUniqueGroups(
+        rows,
+        courseId,
+        categoryResult.categoryId,
+      );
 
-        _setStatus('Creando categoría "$categoryName"…');
-        final categoryObj = RobleGroupCategory(
-          name: categoryName,
-          courseId: courseId,
-        );
-        print(
-          '=== Enviando payload a group_categories ===\n${categoryObj.toJson()}',
-        );
+      _setStatus('Procesando estudiantes...');
+      final studentIds = await _resolveStudentIds(rows);
 
-        categoryId = await _api.insert(
-          'group_categories',
-          categoryObj.toJson(),
-        );
-        _cachedCategoryId = categoryId;
-      }
-
-      // ── 5. Insert unique groups ────────────────────────────────────────
-      _setStatus('Creando grupos…');
-      final groupIds = await _insertUniqueGroups(rows, courseId, categoryId);
-
-      // ── 6. Insert students (deduplicated by email) ─────────────────────
-      _setStatus('Insertando estudiantes…');
-      final studentIds = await _insertUniqueStudents(rows);
-
-      // ── 7. Insert group_members ────────────────────────────────────────
-      _setStatus('Vinculando estudiantes a grupos…');
+      _setStatus('Vinculando estudiantes a grupos...');
       await _insertGroupMembers(rows, studentIds, groupIds);
 
-      _setStatus('¡Curso creado exitosamente!');
+      _setStatus('Importacion completada.');
+      final actionLabel = replacedExistingCategory ? 'actualizo' : 'cargo';
       Get.snackbar(
-        'Éxito',
-        'El curso "$trimmed" se creó con ${studentIds.length} estudiantes.',
+        'Exito',
+        'La categoria "$categoryName" se $actionLabel en "$trimmedCourseName" con ${studentIds.length} estudiantes.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade700,
         colorText: Colors.white,
@@ -142,7 +103,7 @@ class CreateCourseController extends GetxController {
     } catch (e) {
       _setStatus('Error: ${e.toString()}');
       Get.snackbar(
-        'Error al crear curso',
+        'Error al importar CSV',
         e.toString(),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade700,
@@ -154,8 +115,6 @@ class CreateCourseController extends GetxController {
       isLoading.value = false;
     }
   }
-
-  // ── Private helpers ────────────────────────────────────────────────────────
 
   Future<List<CsvRow>> _parseCsv(PlatformFile file) async {
     String content;
@@ -169,7 +128,6 @@ class CreateCourseController extends GetxController {
 
     final rawRows = const CsvToListConverter(eol: '\n').convert(content);
 
-    // Skip the header row (index 0) if it starts with a known header text
     final startIndex =
         (rawRows.isNotEmpty &&
             rawRows.first.first.toString().contains('Group Category'))
@@ -180,13 +138,184 @@ class CreateCourseController extends GetxController {
         .skip(startIndex)
         .where(
           (row) =>
-              row.isNotEmpty && row.any((c) => c.toString().trim().isNotEmpty),
+              row.isNotEmpty &&
+              row.any((cell) => cell.toString().trim().isNotEmpty),
         )
         .map(CsvRow.fromList)
         .toList();
   }
 
-  /// Inserts each unique group (by code) and returns a map of groupCode → ROBLE ID.
+  String _resolveCategoryName(List<CsvRow> rows) {
+    final categoryNames = rows
+        .map((row) => row.groupCategoryName.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet();
+
+    if (categoryNames.length > 1) {
+      throw Exception(
+        'El CSV debe contener una sola categoria por carga. Categorias encontradas: ${categoryNames.join(', ')}',
+      );
+    }
+
+    return categoryNames.isEmpty ? 'Categoria General' : categoryNames.first;
+  }
+
+  Future<String> _resolveCourseId({
+    required String courseName,
+    required String teacherEmail,
+    required List<CsvRow> rows,
+  }) async {
+    final existingCourse = await _findExistingCourse(
+      courseName: courseName,
+      teacherEmail: teacherEmail,
+    );
+
+    if (existingCourse != null) {
+      _setStatus('Reutilizando curso "$courseName"...');
+      return existingCourse.id;
+    }
+
+    _setStatus('Creando curso "$courseName"...');
+    final courseCode = rows.first.groupCode.isNotEmpty
+        ? rows.first.groupCode
+        : courseName.replaceAll(' ', '_').toUpperCase();
+
+    final courseObj = RobleCourse(
+      name: courseName,
+      code: courseCode,
+      description: rows.first.groupCategoryName.isNotEmpty
+          ? rows.first.groupCategoryName
+          : 'Curso importado desde CSV',
+      teacherEmail: teacherEmail,
+    );
+    print('=== Enviando payload a courses ===\n${courseObj.toJson()}');
+
+    return _api.insert('courses', courseObj.toJson());
+  }
+
+  Future<RobleCourseHome?> _findExistingCourse({
+    required String courseName,
+    required String teacherEmail,
+  }) async {
+    final rows = await _api.read(
+      'courses',
+      filters: {'name': courseName, 'teacher_email': teacherEmail},
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    final courses = rows
+        .map(RobleCourseHome.fromJson)
+        .where((course) => course.id.isNotEmpty)
+        .toList();
+    if (courses.isEmpty) {
+      return null;
+    }
+
+    courses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return courses.first;
+  }
+
+  Future<_CategoryPreparationResult> _prepareCategoryForUpload({
+    required String courseId,
+    required String categoryName,
+  }) async {
+    final existingRows = await _api.read(
+      'group_categories',
+      filters: {'course_id': courseId, 'name': categoryName},
+    );
+    final existingCategories = existingRows
+        .map(RobleGroupCategoryRecord.fromJson)
+        .where((category) => category.id.isNotEmpty)
+        .toList();
+
+    var replacedExistingData = false;
+    if (existingCategories.isNotEmpty) {
+      replacedExistingData = true;
+      _setStatus(
+        'La categoria "$categoryName" ya existe. Eliminando datos anteriores...',
+      );
+
+      for (final category in existingCategories) {
+        await _deleteCategoryData(category);
+      }
+    }
+
+    _setStatus('Creando categoria "$categoryName"...');
+    final categoryObj = RobleGroupCategory(
+      name: categoryName,
+      courseId: courseId,
+    );
+    print(
+      '=== Enviando payload a group_categories ===\n${categoryObj.toJson()}',
+    );
+
+    final categoryId = await _api.insert(
+      'group_categories',
+      categoryObj.toJson(),
+    );
+    return _CategoryPreparationResult(
+      categoryId: categoryId,
+      replacedExistingData: replacedExistingData,
+    );
+  }
+
+  Future<void> _deleteCategoryData(RobleGroupCategoryRecord category) async {
+    _setStatus('Eliminando grupos y membresias de "${category.name}"...');
+
+    final groupRows = await _api.read(
+      'course_groups',
+      filters: {'category_id': category.id},
+    );
+    final groups = groupRows
+        .map(RobleCourseGroupRecord.fromJson)
+        .where((group) => group.id.isNotEmpty)
+        .toList();
+
+    final membershipIds = <String>{};
+    final affectedStudentIds = <String>{};
+
+    for (final group in groups) {
+      final membershipRows = await _api.read(
+        'group_members',
+        filters: {'group_id': group.id},
+      );
+      final memberships = membershipRows
+          .map(RobleGroupMemberRecord.fromJson)
+          .where((membership) => membership.id.isNotEmpty)
+          .toList();
+
+      for (final membership in memberships) {
+        membershipIds.add(membership.id);
+        if (membership.studentId.isNotEmpty) {
+          affectedStudentIds.add(membership.studentId);
+        }
+      }
+    }
+
+    for (final membershipId in membershipIds) {
+      await _api.deleteById('group_members', membershipId);
+    }
+
+    for (final group in groups) {
+      await _api.deleteById('course_groups', group.id);
+    }
+
+    await _api.deleteById('group_categories', category.id);
+
+    for (final studentId in affectedStudentIds) {
+      final remainingMemberships = await _api.read(
+        'group_members',
+        filters: {'student_id': studentId},
+      );
+
+      if (remainingMemberships.isEmpty) {
+        await _api.deleteById('students', studentId);
+      }
+    }
+  }
+
   Future<Map<String, String>> _insertUniqueGroups(
     List<CsvRow> rows,
     String courseId,
@@ -196,7 +325,9 @@ class CreateCourseController extends GetxController {
     var done = 0;
 
     for (final row in rows) {
-      if (seen.containsKey(row.groupCode)) continue;
+      if (seen.containsKey(row.groupCode)) {
+        continue;
+      }
 
       final groupObj = RobleCourseGroup(
         name: row.groupName.isNotEmpty ? row.groupName : 'Grupo sin nombre',
@@ -210,37 +341,61 @@ class CreateCourseController extends GetxController {
 
       seen[row.groupCode] = id;
       done++;
-      _setStatus('Grupos: $done insertados…');
+      _setStatus('Grupos: $done insertados...');
     }
 
     return seen;
   }
 
-  /// Inserts each unique student (by email) and returns a map of email → ROBLE ID.
-  Future<Map<String, String>> _insertUniqueStudents(List<CsvRow> rows) async {
+  Future<Map<String, String>> _resolveStudentIds(List<CsvRow> rows) async {
     final seen = <String, String>{};
+    final uniqueEmails = rows
+        .map((row) => _normalizeEmail(row.email))
+        .where((email) => email.isNotEmpty)
+        .toSet();
+    final total = uniqueEmails.length;
     var done = 0;
 
     for (final row in rows) {
-      if (seen.containsKey(row.email)) continue;
+      final normalizedEmail = _normalizeEmail(row.email);
+      if (normalizedEmail.isEmpty || seen.containsKey(normalizedEmail)) {
+        continue;
+      }
+
+      final existingRows = await _api.read(
+        'students',
+        filters: {'email': normalizedEmail},
+      );
+      if (existingRows.isNotEmpty) {
+        final existingStudent = RobleStudentRecord.fromJson(existingRows.first);
+        if (existingStudent.id.isNotEmpty) {
+          seen[normalizedEmail] = existingStudent.id;
+          done++;
+          progress.value = total == 0 ? 0 : done / total;
+          _setStatus('Estudiantes: $done procesados...');
+          continue;
+        }
+      }
 
       final studentObj = RobleStudent(
         username: row.username.isNotEmpty
             ? row.username
-            : row.email.split('@').first,
+            : normalizedEmail.split('@').first,
         orgId: row.orgDefinedId.isNotEmpty ? row.orgDefinedId : '00000',
         firstName: row.firstName.isNotEmpty ? row.firstName : 'Sin nombre',
         lastName: row.lastName.isNotEmpty ? row.lastName : 'Sin apellido',
-        email: row.email.isNotEmpty ? row.email : 'correo@invalido.com',
+        email: normalizedEmail.isNotEmpty
+            ? normalizedEmail
+            : 'correo@invalido.com',
       );
 
       print('=== Enviando payload a students ===\n${studentObj.toJson()}');
       final id = await _api.insert('students', studentObj.toJson());
 
-      seen[row.email] = id;
+      seen[normalizedEmail] = id;
       done++;
-      progress.value = done / rows.length;
-      _setStatus('Estudiantes: $done insertados…');
+      progress.value = total == 0 ? 0 : done / total;
+      _setStatus('Estudiantes: $done procesados...');
     }
 
     return seen;
@@ -252,34 +407,41 @@ class CreateCourseController extends GetxController {
     Map<String, String> groupIds,
   ) async {
     var done = 0;
+
     for (final row in rows) {
-      final studentId = studentIds[row.email];
+      final studentId = studentIds[_normalizeEmail(row.email)];
       final groupId = groupIds[row.groupCode];
 
-      if (studentId == null || groupId == null) continue;
+      if (studentId == null || groupId == null) {
+        continue;
+      }
 
-      final fechaOriginal = row.enrollmentDate;
-      final fechaFormateada = _formatSpanishDate(fechaOriginal);
-      print('Fecha convertida: $fechaOriginal -> $fechaFormateada');
+      final originalDate = row.enrollmentDate;
+      final formattedDate = _formatSpanishDate(originalDate);
+      print('Fecha convertida: $originalDate -> $formattedDate');
 
       final memberObj = RobleGroupMember(
         studentId: studentId,
         groupId: groupId,
-        enrollmentDate: fechaFormateada,
+        enrollmentDate: formattedDate,
       );
 
       print('=== Enviando payload a group_members ===\n${memberObj.toJson()}');
       await _api.insert('group_members', memberObj.toJson());
 
       done++;
-      _setStatus('Membresías: $done/${rows.length}…');
+      _setStatus('Membresias: $done/${rows.length}...');
     }
   }
 
   void _setStatus(String msg) => statusMessage.value = msg;
 
+  String _normalizeEmail(String email) => email.trim().toLowerCase();
+
   String _formatSpanishDate(String date) {
-    if (date.isEmpty) return DateTime.now().toIso8601String();
+    if (date.isEmpty) {
+      return DateTime.now().toIso8601String();
+    }
 
     final months = {
       'enero': '01',
@@ -297,7 +459,6 @@ class CreateCourseController extends GetxController {
     };
 
     try {
-      // Input: '4 de febrero de 2026 08:13'
       final parts = date.toLowerCase().split(' ');
       if (parts.length >= 6) {
         final day = parts[0].padLeft(2, '0');
@@ -310,4 +471,14 @@ class CreateCourseController extends GetxController {
 
     return DateTime.now().toIso8601String();
   }
+}
+
+class _CategoryPreparationResult {
+  const _CategoryPreparationResult({
+    required this.categoryId,
+    required this.replacedExistingData,
+  });
+
+  final String categoryId;
+  final bool replacedExistingData;
 }
