@@ -172,10 +172,20 @@ class RobleApiService {
             )
             .toList();
 
-        print('Cursos obtenidos despues de filtro: ${mapped.length}');
+        final enriched = <RobleCourseHome>[];
+        for (final course in mapped) {
+          final stats = await _getCourseStats(course.id);
+          enriched.add(
+            course.copyWith(
+              studentCount: stats.studentCount,
+            ),
+          );
+        }
+
+        print('Cursos obtenidos despues de filtro: ${enriched.length}');
         // Sort newest first
-        mapped.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return mapped;
+        enriched.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return enriched;
       }
 
       print('El body no tenia el formato esperado de List.');
@@ -314,6 +324,39 @@ class RobleApiService {
     return course;
   }
 
+  Future<_CourseStats> _getCourseStats(String courseId) async {
+    if (courseId.isEmpty) {
+      return const _CourseStats(studentCount: 0);
+    }
+
+    final groupRows = await read(
+      'course_groups',
+      filters: {'course_id': courseId},
+    );
+    if (groupRows.isEmpty) {
+      return const _CourseStats(studentCount: 0);
+    }
+
+    final groups = groupRows.map(RobleCourseGroupRecord.fromJson).toList();
+    final studentIds = <String>{};
+
+    for (final group in groups) {
+      final membershipRows = await read(
+        'group_members',
+        filters: {'group_id': group.id},
+      );
+
+      for (final row in membershipRows) {
+        final membership = RobleGroupMemberRecord.fromJson(row);
+        if (membership.studentId.isNotEmpty) {
+          studentIds.add(membership.studentId);
+        }
+      }
+    }
+
+    return _CourseStats(studentCount: studentIds.length);
+  }
+
   /// Inserts multiple rows into [table] sequentially, in chunks of [chunkSize].
   /// Returns the list of generated IDs in the same order as [rows].
   Future<List<String>> insertBatch(
@@ -336,4 +379,10 @@ class RobleApiService {
   /// Resets the cached Dio instance, allowing the next call to [_client] to
   /// pick up a fresh access token (useful after token refresh).
   void resetClient() => _dio = null;
+}
+
+class _CourseStats {
+  const _CourseStats({required this.studentCount});
+
+  final int studentCount;
 }

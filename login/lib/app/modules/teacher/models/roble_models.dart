@@ -199,6 +199,31 @@ class RobleCourseHome {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
+      studentCount: int.tryParse(json['student_count']?.toString() ?? '') ?? 25,
+      pendingEvaluations:
+          int.tryParse(json['pending_evaluations']?.toString() ?? '') ?? 3,
+    );
+  }
+
+  RobleCourseHome copyWith({
+    String? id,
+    String? name,
+    String? code,
+    String? teacherEmail,
+    DateTime? createdAt,
+    String? status,
+    int? studentCount,
+    int? pendingEvaluations,
+  }) {
+    return RobleCourseHome(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      code: code ?? this.code,
+      teacherEmail: teacherEmail ?? this.teacherEmail,
+      createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
+      studentCount: studentCount ?? this.studentCount,
+      pendingEvaluations: pendingEvaluations ?? this.pendingEvaluations,
     );
   }
 }
