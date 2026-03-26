@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/errors/error_message_formatter.dart';
 import '../../../core/roble/roble.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../login/bindings/login_binding.dart';
@@ -14,6 +15,7 @@ import 'create_course_view.dart';
 part 'teacher_ui_state.dart';
 part 'teacher_course_detail_view.dart';
 part 'teacher_evaluation_builder_view.dart';
+part 'teacher_assessment_detail_view.dart';
 part 'teacher_dashboard_view.dart';
 part 'teacher_evaluations_view.dart';
 part 'teacher_reports_view.dart';

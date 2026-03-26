@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/errors/auth_exception.dart';
+import '../../../core/errors/error_message_formatter.dart';
 import '../../../core/roble/roble.dart';
 import '../../login/services/auth_service.dart';
 import '../controllers/teacher_home_controller.dart';
@@ -105,10 +106,14 @@ class CreateCourseController extends GetxController {
       );
       Get.find<TeacherHomeController>().fetchCourses();
     } catch (e) {
-      _setStatus('Error: ${e.toString()}');
+      final message = formatUserErrorMessage(
+        e,
+        fallback: 'No se pudo completar la importacion del archivo.',
+      );
+      _setStatus('Error: $message');
       Get.snackbar(
         'Error al importar CSV',
-        e.toString(),
+        message,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade700,
         colorText: Colors.white,

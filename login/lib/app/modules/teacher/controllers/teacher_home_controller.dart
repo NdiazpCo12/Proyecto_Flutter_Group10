@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/errors/error_message_formatter.dart';
 import '../../../core/roble/roble.dart';
 import '../../login/services/auth_service.dart';
 import '../data/teacher_mock_data.dart';
@@ -12,9 +13,10 @@ class TeacherHomeController extends GetxController {
   final displayName = 'Teacher'.obs;
 
   final isLoadingCourses = true.obs;
+  final isLoadingAssessments = true.obs;
   final courses = <RobleCourseHome>[].obs;
+  final assessments = <RobleAssessmentOverview>[].obs;
 
-  List<TeacherEvaluation> get evaluations => TeacherMockData.evaluations;
   List<TeacherGroup> get groups => TeacherMockData.groups;
 
   final RobleApiService _api = RobleApiService();
@@ -51,12 +53,6 @@ class TeacherHomeController extends GetxController {
     return groups.where((group) => group.courseId == courseId).toList();
   }
 
-  List<TeacherEvaluation> evaluationsForCourse(String courseId) {
-    return evaluations
-        .where((evaluation) => evaluation.courseId == courseId)
-        .toList();
-  }
-
   Future<void> _loadCurrentUser() async {
     final user = await Get.find<AuthService>().getStoredUser();
     final name = user?.name.trim();
@@ -73,11 +69,113 @@ class TeacherHomeController extends GetxController {
       final email = user?.email ?? 'profesor@uninorte.edu.co';
       final fetched = await _api.getCourses(email);
       courses.value = fetched;
+      await fetchAssessments(teacherEmail: email);
     } catch (e) {
-      Get.snackbar('Error', 'No se pudieron sincronizar los cursos de ROBLE.');
+      courses.clear();
+      assessments.clear();
+      Get.snackbar(
+        'Error',
+        formatUserErrorMessage(
+          e,
+          fallback: 'No se pudieron cargar los cursos en este momento.',
+        ),
+      );
     } finally {
       isLoadingCourses.value = false;
     }
+  }
+
+  Future<void> fetchAssessments({String? teacherEmail}) async {
+    isLoadingAssessments.value = true;
+    try {
+      final email =
+          teacherEmail ??
+          (await Get.find<AuthService>().getStoredUser())?.email ??
+          'profesor@uninorte.edu.co';
+      final fetched = await _api.getTeacherAssessments(email);
+      assessments.value = fetched;
+    } catch (e) {
+      assessments.clear();
+      Get.snackbar(
+        'Error',
+        formatUserErrorMessage(
+          e,
+          fallback: 'No se pudieron cargar las evaluaciones en este momento.',
+        ),
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    } finally {
+      isLoadingAssessments.value = false;
+    }
+  }
+
+  Future<List<RobleGroupCategoryRecord>> loadCourseCategories(
+    String courseId,
+  ) async {
+    return _api.getCourseCategories(courseId);
+  }
+
+  Future<String> createAssessment({
+    required String name,
+    required String courseId,
+    required String categoryId,
+    required bool publicResults,
+    required int durationDays,
+  }) async {
+    final user = await Get.find<AuthService>().getStoredUser();
+    final teacherEmail = user?.email ?? 'profesor@uninorte.edu.co';
+    final now = DateTime.now();
+    final startsAt = now;
+    final endsAt = now.add(Duration(days: durationDays));
+
+    final assessment = RobleAssessment(
+      courseId: courseId,
+      categoryId: categoryId,
+      name: name,
+      visibility: publicResults ? 'public' : 'private',
+      status: 'open',
+      startsAt: startsAt,
+      endsAt: endsAt,
+      createdByEmail: teacherEmail,
+      createdAt: now,
+    );
+
+    final assessmentId = await _api.insert('assessments', assessment.toJson());
+
+    for (final criterionTemplate in _defaultRubric) {
+      final criterion = RobleAssessmentCriterion(
+        assessmentId: assessmentId,
+        name: criterionTemplate.name,
+        description: criterionTemplate.description,
+        weight: criterionTemplate.weight,
+        displayOrder: criterionTemplate.displayOrder,
+        createdAt: now,
+      );
+      final criterionId = await _api.insert(
+        'assessment_criteria',
+        criterion.toJson(),
+      );
+
+      for (final levelTemplate in criterionTemplate.levels) {
+        final level = RobleAssessmentCriterionLevel(
+          criterionId: criterionId,
+          scoreValue: levelTemplate.scoreValue,
+          label: levelTemplate.label,
+          descriptionEn: levelTemplate.descriptionEn,
+          descriptionEs: levelTemplate.descriptionEs,
+          displayOrder: levelTemplate.displayOrder,
+        );
+        await _api.insert('assessment_criterion_levels', level.toJson());
+      }
+    }
+
+    await fetchAssessments();
+    return assessmentId;
+  }
+
+  Future<RobleAssessmentDetailData?> loadAssessmentDetail(String assessmentId) {
+    return _api.getAssessmentDetail(assessmentId);
   }
 
   Future<RobleCourseManagementData> loadCourseManagementData(
@@ -92,3 +190,188 @@ class TeacherHomeController extends GetxController {
     await fetchCourses();
   }
 }
+
+class _CriterionTemplate {
+  const _CriterionTemplate({
+    required this.name,
+    required this.description,
+    required this.weight,
+    required this.displayOrder,
+    required this.levels,
+  });
+
+  final String name;
+  final String description;
+  final int weight;
+  final int displayOrder;
+  final List<_CriterionLevelTemplate> levels;
+}
+
+class _CriterionLevelTemplate {
+  const _CriterionLevelTemplate({
+    required this.scoreValue,
+    required this.label,
+    required this.descriptionEn,
+    required this.descriptionEs,
+    required this.displayOrder,
+  });
+
+  final int scoreValue;
+  final String label;
+  final String descriptionEn;
+  final String descriptionEs;
+  final int displayOrder;
+}
+
+const _defaultRubric = [
+  _CriterionTemplate(
+    name: 'Punctuality',
+    description: 'Attendance, punctuality and deadline compliance.',
+    weight: 25,
+    displayOrder: 1,
+    levels: [
+      _CriterionLevelTemplate(
+        scoreValue: 2,
+        label: 'Needs Improvement',
+        descriptionEn: 'Frequently late or absent and affects team progress.',
+        descriptionEs: 'Llega tarde o falta con frecuencia y afecta el avance.',
+        displayOrder: 1,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 3,
+        label: 'Adequate',
+        descriptionEn:
+            'Usually attends but still misses some sessions or times.',
+        descriptionEs: 'Asiste normalmente, aunque aun presenta retrasos.',
+        displayOrder: 2,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 4,
+        label: 'Good',
+        descriptionEn: 'Generally punctual and reliable in meetings and tasks.',
+        descriptionEs: 'Generalmente es puntual y cumple bien con el equipo.',
+        displayOrder: 3,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 5,
+        label: 'Excellent',
+        descriptionEn: 'Consistently punctual, prepared and dependable.',
+        descriptionEs: 'Siempre es puntual, preparado y muy confiable.',
+        displayOrder: 4,
+      ),
+    ],
+  ),
+  _CriterionTemplate(
+    name: 'Contributions',
+    description: 'Quality and relevance of delivered work.',
+    weight: 25,
+    displayOrder: 2,
+    levels: [
+      _CriterionLevelTemplate(
+        scoreValue: 2,
+        label: 'Needs Improvement',
+        descriptionEn: 'Contributes very little and rarely supports outcomes.',
+        descriptionEs: 'Aporta muy poco y casi no apoya los entregables.',
+        displayOrder: 1,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 3,
+        label: 'Adequate',
+        descriptionEn: 'Participates occasionally and completes some tasks.',
+        descriptionEs: 'Participa de forma ocasional y cumple algunas tareas.',
+        displayOrder: 2,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 4,
+        label: 'Good',
+        descriptionEn: 'Makes relevant contributions that support the team.',
+        descriptionEs: 'Hace aportes relevantes que apoyan al equipo.',
+        displayOrder: 3,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 5,
+        label: 'Excellent',
+        descriptionEn:
+            'Provides strong, proactive contributions that improve work.',
+        descriptionEs:
+            'Hace aportes solidos y proactivos que mejoran el trabajo.',
+        displayOrder: 4,
+      ),
+    ],
+  ),
+  _CriterionTemplate(
+    name: 'Commitment',
+    description: 'Responsibility with assigned tasks and team roles.',
+    weight: 25,
+    displayOrder: 3,
+    levels: [
+      _CriterionLevelTemplate(
+        scoreValue: 2,
+        label: 'Needs Improvement',
+        descriptionEn: 'Shows low commitment and weak ownership of tasks.',
+        descriptionEs: 'Muestra poco compromiso y poca apropiacion de tareas.',
+        displayOrder: 1,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 3,
+        label: 'Adequate',
+        descriptionEn: 'Shows acceptable commitment but lacks consistency.',
+        descriptionEs: 'Cumple de forma aceptable, pero con poca constancia.',
+        displayOrder: 2,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 4,
+        label: 'Good',
+        descriptionEn: 'Demonstrates responsibility and follows through well.',
+        descriptionEs: 'Demuestra responsabilidad y cumple bien sus tareas.',
+        displayOrder: 3,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 5,
+        label: 'Excellent',
+        descriptionEn: 'Consistently committed and highly dependable.',
+        descriptionEs: 'Es consistentemente comprometido y muy confiable.',
+        displayOrder: 4,
+      ),
+    ],
+  ),
+  _CriterionTemplate(
+    name: 'Attitude',
+    description: 'Collaboration, openness and impact on team climate.',
+    weight: 25,
+    displayOrder: 4,
+    levels: [
+      _CriterionLevelTemplate(
+        scoreValue: 2,
+        label: 'Needs Improvement',
+        descriptionEn:
+            'Negative or disengaged attitude that hurts collaboration.',
+        descriptionEs: 'Tiene una actitud negativa que afecta la colaboracion.',
+        displayOrder: 1,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 3,
+        label: 'Adequate',
+        descriptionEn: 'Usually positive, but does not always help the team.',
+        descriptionEs: 'Suele ser positivo, pero no siempre aporta al equipo.',
+        displayOrder: 2,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 4,
+        label: 'Good',
+        descriptionEn:
+            'Shows a positive and collaborative attitude most of the time.',
+        descriptionEs:
+            'Muestra una actitud positiva y colaborativa la mayoria del tiempo.',
+        displayOrder: 3,
+      ),
+      _CriterionLevelTemplate(
+        scoreValue: 5,
+        label: 'Excellent',
+        descriptionEn: 'Consistently promotes a constructive team environment.',
+        descriptionEs: 'Promueve de forma constante un ambiente constructivo.',
+        displayOrder: 4,
+      ),
+    ],
+  ),
+];

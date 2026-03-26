@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/errors/error_message_formatter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/roble/roble.dart';
 import '../../login/bindings/login_binding.dart';
@@ -85,9 +86,16 @@ class _StudentHomeViewState extends State<StudentHomeView> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoadingCourses = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            formatUserErrorMessage(
+              e,
+              fallback: 'No se pudo cargar la informacion del curso.',
+            ),
+          ),
+        ),
+      );
     }
   }
 

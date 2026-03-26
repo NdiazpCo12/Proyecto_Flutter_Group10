@@ -339,3 +339,212 @@ class RobleCourseManagementData {
 
   int get studentCount => roster.map((entry) => entry.studentId).toSet().length;
 }
+
+class RobleAssessment {
+  RobleAssessment({
+    this.id,
+    required this.courseId,
+    required this.categoryId,
+    required this.name,
+    required this.visibility,
+    required this.status,
+    required this.startsAt,
+    required this.endsAt,
+    required this.createdByEmail,
+    required this.createdAt,
+  });
+
+  final String? id;
+  final String courseId;
+  final String categoryId;
+  final String name;
+  final String visibility;
+  final String status;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final String createdByEmail;
+  final DateTime createdAt;
+
+  factory RobleAssessment.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now();
+    return RobleAssessment(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      courseId: json['course_id']?.toString() ?? '',
+      categoryId: json['category_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Untitled assessment',
+      visibility: json['visibility']?.toString() ?? 'private',
+      status: json['status']?.toString() ?? 'draft',
+      startsAt: json['starts_at'] != null
+          ? DateTime.tryParse(json['starts_at'].toString()) ?? now
+          : now,
+      endsAt: json['ends_at'] != null
+          ? DateTime.tryParse(json['ends_at'].toString()) ??
+                now.add(const Duration(days: 7))
+          : now.add(const Duration(days: 7)),
+      createdByEmail: json['created_by_email']?.toString() ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? now
+          : now,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'course_id': courseId,
+    'category_id': categoryId,
+    'name': name,
+    'visibility': visibility,
+    'status': status,
+    'starts_at': startsAt.toIso8601String(),
+    'ends_at': endsAt.toIso8601String(),
+    'created_by_email': createdByEmail,
+    'created_at': createdAt.toIso8601String(),
+  };
+}
+
+class RobleAssessmentCriterion {
+  RobleAssessmentCriterion({
+    this.id,
+    required this.assessmentId,
+    required this.name,
+    required this.description,
+    required this.weight,
+    required this.displayOrder,
+    required this.createdAt,
+  });
+
+  final String? id;
+  final String assessmentId;
+  final String name;
+  final String description;
+  final int weight;
+  final int displayOrder;
+  final DateTime createdAt;
+
+  factory RobleAssessmentCriterion.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now();
+    return RobleAssessmentCriterion(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      assessmentId: json['assessment_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Criterion',
+      description: json['description']?.toString() ?? '',
+      weight: int.tryParse(json['weight']?.toString() ?? '') ?? 0,
+      displayOrder: int.tryParse(json['display_order']?.toString() ?? '') ?? 0,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? now
+          : now,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'assessment_id': assessmentId,
+    'name': name,
+    'description': description,
+    'weight': weight,
+    'display_order': displayOrder,
+    'created_at': createdAt.toIso8601String(),
+  };
+}
+
+class RobleAssessmentCriterionLevel {
+  RobleAssessmentCriterionLevel({
+    this.id,
+    required this.criterionId,
+    required this.scoreValue,
+    required this.label,
+    required this.descriptionEn,
+    required this.descriptionEs,
+    required this.displayOrder,
+  });
+
+  final String? id;
+  final String criterionId;
+  final int scoreValue;
+  final String label;
+  final String descriptionEn;
+  final String descriptionEs;
+  final int displayOrder;
+
+  factory RobleAssessmentCriterionLevel.fromJson(Map<String, dynamic> json) {
+    return RobleAssessmentCriterionLevel(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      criterionId: json['criterion_id']?.toString() ?? '',
+      scoreValue: int.tryParse(json['score_value']?.toString() ?? '') ?? 0,
+      label: json['label']?.toString() ?? '',
+      descriptionEn: json['description_en']?.toString() ?? '',
+      descriptionEs: json['description_es']?.toString() ?? '',
+      displayOrder: int.tryParse(json['display_order']?.toString() ?? '') ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'criterion_id': criterionId,
+    'score_value': scoreValue,
+    'label': label,
+    'description_en': descriptionEn,
+    'description_es': descriptionEs,
+    'display_order': displayOrder,
+  };
+}
+
+class RobleAssessmentCriterionDetail {
+  const RobleAssessmentCriterionDetail({
+    required this.criterion,
+    required this.levels,
+  });
+
+  final RobleAssessmentCriterion criterion;
+  final List<RobleAssessmentCriterionLevel> levels;
+}
+
+class RobleAssessmentOverview {
+  const RobleAssessmentOverview({
+    required this.assessment,
+    required this.course,
+    required this.categoryName,
+    required this.responsesSubmitted,
+    required this.totalReviewers,
+  });
+
+  final RobleAssessment assessment;
+  final RobleCourseHome course;
+  final String categoryName;
+  final int responsesSubmitted;
+  final int totalReviewers;
+
+  String get visibilityLabel =>
+      assessment.visibility.toLowerCase() == 'public' ? 'Public' : 'Private';
+
+  String get statusLabel {
+    final normalized = assessment.status.toLowerCase();
+    final now = DateTime.now();
+    if (normalized == 'closed' || now.isAfter(assessment.endsAt)) {
+      return 'Closed';
+    }
+    if (normalized == 'draft') {
+      return 'Draft';
+    }
+    if (now.isBefore(assessment.startsAt)) {
+      return 'Scheduled';
+    }
+    return 'Active';
+  }
+
+  double get completionProgress {
+    if (totalReviewers <= 0) {
+      return 0;
+    }
+    return responsesSubmitted / totalReviewers;
+  }
+}
+
+class RobleAssessmentDetailData {
+  const RobleAssessmentDetailData({
+    required this.overview,
+    required this.category,
+    required this.criteria,
+  });
+
+  final RobleAssessmentOverview overview;
+  final RobleGroupCategoryRecord? category;
+  final List<RobleAssessmentCriterionDetail> criteria;
+}

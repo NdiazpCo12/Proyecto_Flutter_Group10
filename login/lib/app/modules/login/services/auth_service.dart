@@ -35,7 +35,7 @@ class AuthService {
     if (_isSuccess(response.statusCode)) {
       final session = AuthSession.fromJson(body);
       if (session.accessToken.isEmpty || session.refreshToken.isEmpty) {
-        throw AuthException('Roble did not return valid tokens.');
+        throw AuthException('No fue posible iniciar sesion en este momento.');
       }
       await _storage.saveTokens(
         accessToken: session.accessToken,
@@ -46,7 +46,7 @@ class AuthService {
     }
 
     throw AuthException(
-      _extractErrorMessage(body, fallback: 'Login failed.'),
+      _extractErrorMessage(body, fallback: 'No se pudo iniciar sesion.'),
       statusCode: response.statusCode,
     );
   }
@@ -59,7 +59,7 @@ class AuthService {
     await _postWithoutAuth(
       endpoint: 'signup',
       payload: {'email': email, 'password': password, 'name': name},
-      fallbackMessage: 'Sign up failed.',
+      fallbackMessage: 'No se pudo completar el registro.',
     );
   }
 
@@ -71,7 +71,7 @@ class AuthService {
     await _postWithoutAuth(
       endpoint: 'signup-direct',
       payload: {'email': email, 'password': password, 'name': name},
-      fallbackMessage: 'Direct sign up failed.',
+      fallbackMessage: 'No se pudo completar el registro.',
     );
   }
 
@@ -82,7 +82,7 @@ class AuthService {
     await _postWithoutAuth(
       endpoint: 'verify-email',
       payload: {'email': email, 'code': code},
-      fallbackMessage: 'Email verification failed.',
+      fallbackMessage: 'No se pudo verificar el correo.',
     );
   }
 
@@ -90,7 +90,7 @@ class AuthService {
     await _postWithoutAuth(
       endpoint: 'forgot-password',
       payload: {'email': email},
-      fallbackMessage: 'Forgot password request failed.',
+      fallbackMessage: 'No se pudo procesar la solicitud.',
     );
   }
 
@@ -101,7 +101,7 @@ class AuthService {
     await _postWithoutAuth(
       endpoint: 'reset-password',
       payload: {'token': token, 'newPassword': newPassword},
-      fallbackMessage: 'Reset password failed.',
+      fallbackMessage: 'No se pudo actualizar la contrasena.',
     );
   }
 
@@ -124,7 +124,7 @@ class AuthService {
 
     final body = _decodeBody(response);
     throw AuthException(
-      _extractErrorMessage(body, fallback: 'Logout failed.'),
+      _extractErrorMessage(body, fallback: 'No se pudo cerrar la sesion.'),
       statusCode: response.statusCode,
     );
   }
@@ -162,7 +162,7 @@ class AuthService {
       final newRefreshToken = body['refreshToken'] as String? ?? refreshToken;
 
       if (newAccessToken == null || newAccessToken.isEmpty) {
-        throw AuthException('Roble did not return a refreshed access token.');
+        throw AuthException('No fue posible renovar la sesion.');
       }
 
       await _storage.saveTokens(
@@ -173,7 +173,7 @@ class AuthService {
     }
 
     throw AuthException(
-      _extractErrorMessage(body, fallback: 'Token refresh failed.'),
+      _extractErrorMessage(body, fallback: 'No fue posible renovar la sesion.'),
       statusCode: response.statusCode,
     );
   }

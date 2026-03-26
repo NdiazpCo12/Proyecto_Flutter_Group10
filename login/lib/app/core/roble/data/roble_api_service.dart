@@ -71,13 +71,10 @@ class RobleApiService {
             .toList();
       }
 
-      throw Exception(
-        'La API no devolvio una lista valida para la tabla "$table". '
-        'Respuesta completa: $body',
-      );
+      throw Exception('No fue posible leer la informacion solicitada.');
     } on DioException catch (e) {
       final msg = e.response?.data?.toString() ?? e.message ?? e.toString();
-      throw Exception('ROBLE read error [$table]: $msg');
+      throw Exception('No se pudo cargar la informacion: $msg');
     }
   }
 
@@ -114,15 +111,12 @@ class RobleApiService {
         }
       }
 
-      throw Exception(
-        'La API no devolvio un _id valido para la tabla "$table".\n'
-        'Respuesta completa: $body',
-      );
+      throw Exception('No fue posible guardar la informacion.');
     } on DioException catch (e) {
       final msg = e.response?.data?.toString() ?? e.message ?? e.toString();
-      throw Exception('ROBLE insert error [$table]: $msg');
+      throw Exception('No se pudo guardar la informacion: $msg');
     } catch (e) {
-      throw Exception('Internal error processing ROBLE API connection: $e');
+      throw Exception('Ocurrio un problema al procesar la solicitud: $e');
     }
   }
 
@@ -148,7 +142,7 @@ class RobleApiService {
       await client.delete('/delete', data: payload);
     } on DioException catch (e) {
       final msg = e.response?.data?.toString() ?? e.message ?? e.toString();
-      throw Exception('ROBLE delete error [$table]: $msg');
+      throw Exception('No se pudo eliminar la informacion: $msg');
     }
   }
 
@@ -214,7 +208,7 @@ class RobleApiService {
         print('Error response data: ${e.response?.data}');
       }
       print('Error en getCourses: $e');
-      throw Exception('No se pudieron obtener los cursos: $e');
+      throw Exception('No se pudieron cargar los cursos.');
     }
   }
 
@@ -287,6 +281,136 @@ class RobleApiService {
       (a, b) => b.course.createdAt.compareTo(a.course.createdAt),
     );
     return enrollments;
+  }
+
+  Future<List<RobleGroupCategoryRecord>> getCourseCategories(
+    String courseId,
+  ) async {
+    if (courseId.trim().isEmpty) {
+      return [];
+    }
+
+    final rows = await read(
+      'group_categories',
+      filters: {'course_id': courseId},
+    );
+    final categories =
+        rows
+            .map(RobleGroupCategoryRecord.fromJson)
+            .where((category) => category.id.isNotEmpty)
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+    return categories;
+  }
+
+  Future<List<RobleAssessmentOverview>> getTeacherAssessments(
+    String teacherEmail,
+  ) async {
+    final courses = await getCourses(teacherEmail);
+    final assessments = <RobleAssessmentOverview>[];
+
+    for (final course in courses) {
+      final categories = await getCourseCategories(course.id);
+      final categoriesById = {
+        for (final category in categories) category.id: category,
+      };
+
+      final rows = await read('assessments', filters: {'course_id': course.id});
+
+      for (final row in rows) {
+        final assessment = RobleAssessment.fromJson(row);
+        final responsesSubmitted = await _getSubmittedResponses(assessment.id);
+        final totalReviewers = await _getCategoryStudentCount(
+          assessment.categoryId,
+        );
+
+        assessments.add(
+          RobleAssessmentOverview(
+            assessment: assessment,
+            course: course,
+            categoryName:
+                categoriesById[assessment.categoryId]?.name ?? 'Sin categoria',
+            responsesSubmitted: responsesSubmitted,
+            totalReviewers: totalReviewers,
+          ),
+        );
+      }
+    }
+
+    assessments.sort(
+      (a, b) => b.assessment.startsAt.compareTo(a.assessment.startsAt),
+    );
+    return assessments;
+  }
+
+  Future<RobleAssessmentDetailData?> getAssessmentDetail(
+    String assessmentId,
+  ) async {
+    final trimmedId = assessmentId.trim();
+    if (trimmedId.isEmpty) {
+      return null;
+    }
+
+    final rows = await read('assessments', filters: {'_id': trimmedId});
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    final assessment = RobleAssessment.fromJson(rows.first);
+    final course = await _getCourseById(
+      assessment.courseId,
+      <String, RobleCourseHome>{},
+    );
+    if (course == null) {
+      return null;
+    }
+
+    final category = await _getGroupCategoryById(
+      assessment.categoryId,
+      <String, RobleGroupCategoryRecord>{},
+    );
+    final responsesSubmitted = await _getSubmittedResponses(assessment.id);
+    final totalReviewers = await _getCategoryStudentCount(
+      assessment.categoryId,
+    );
+
+    final criteriaRows = await read(
+      'assessment_criteria',
+      filters: {'assessment_id': trimmedId},
+    );
+    final criteria =
+        criteriaRows
+            .map(RobleAssessmentCriterion.fromJson)
+            .where((criterion) => (criterion.id ?? '').isNotEmpty)
+            .toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
+    final criterionDetails = <RobleAssessmentCriterionDetail>[];
+    for (final criterion in criteria) {
+      final levelRows = await read(
+        'assessment_criterion_levels',
+        filters: {'criterion_id': criterion.id},
+      );
+      final levels =
+          levelRows.map(RobleAssessmentCriterionLevel.fromJson).toList()
+            ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
+      criterionDetails.add(
+        RobleAssessmentCriterionDetail(criterion: criterion, levels: levels),
+      );
+    }
+
+    return RobleAssessmentDetailData(
+      overview: RobleAssessmentOverview(
+        assessment: assessment,
+        course: course,
+        categoryName: category?.name ?? 'Sin categoria',
+        responsesSubmitted: responsesSubmitted,
+        totalReviewers: totalReviewers,
+      ),
+      category: category,
+      criteria: criterionDetails,
+    );
   }
 
   Future<RobleCourseManagementData> getCourseManagementData(
@@ -513,6 +637,61 @@ class RobleApiService {
     final student = RobleStudentRecord.fromJson(rows.first);
     cache[studentId] = student;
     return student;
+  }
+
+  Future<int> _getSubmittedResponses(String? assessmentId) async {
+    final trimmedId = assessmentId?.trim() ?? '';
+    if (trimmedId.isEmpty) {
+      return 0;
+    }
+
+    final rows = await read(
+      'assessment_submissions',
+      filters: {'assessment_id': trimmedId},
+    );
+
+    var submitted = 0;
+    for (final row in rows) {
+      final status = row['status']?.toString().toLowerCase() ?? '';
+      final submittedAt = row['submitted_at']?.toString().trim() ?? '';
+      if (status == 'submitted' || submittedAt.isNotEmpty) {
+        submitted++;
+      }
+    }
+    return submitted;
+  }
+
+  Future<int> _getCategoryStudentCount(String categoryId) async {
+    final trimmedId = categoryId.trim();
+    if (trimmedId.isEmpty) {
+      return 0;
+    }
+
+    final groupRows = await read(
+      'course_groups',
+      filters: {'category_id': trimmedId},
+    );
+    final groups = groupRows
+        .map(RobleCourseGroupRecord.fromJson)
+        .where((group) => group.id.isNotEmpty)
+        .toList();
+
+    final studentIds = <String>{};
+    for (final group in groups) {
+      final membershipRows = await read(
+        'group_members',
+        filters: {'group_id': group.id},
+      );
+
+      for (final row in membershipRows) {
+        final membership = RobleGroupMemberRecord.fromJson(row);
+        if (membership.studentId.isNotEmpty) {
+          studentIds.add(membership.studentId);
+        }
+      }
+    }
+
+    return studentIds.length;
   }
 
   Future<_CourseStats> _getCourseStats(String courseId) async {

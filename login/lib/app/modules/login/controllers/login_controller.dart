@@ -57,7 +57,7 @@ class LoginController extends GetxController {
     } catch (_) {
       Get.snackbar(
         'Login',
-        'No fue posible iniciar sesion con Roble.',
+        'No fue posible iniciar sesion. Intenta de nuevo.',
         snackPosition: SnackPosition.BOTTOM,
         margin: const EdgeInsets.all(16),
       );

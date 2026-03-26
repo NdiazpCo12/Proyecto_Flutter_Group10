@@ -92,7 +92,10 @@ class _TeacherCourseDetailViewState extends State<TeacherCourseDetailView> {
 
       Get.snackbar(
         'Error',
-        'No se pudo eliminar el curso: $error',
+        formatUserErrorMessage(
+          error,
+          fallback: 'No se pudo eliminar el curso en este momento.',
+        ),
         snackPosition: SnackPosition.BOTTOM,
         margin: const EdgeInsets.all(16),
       );
@@ -142,7 +145,11 @@ class _TeacherCourseDetailViewState extends State<TeacherCourseDetailView> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          snapshot.error.toString(),
+                          formatUserErrorMessage(
+                            snapshot.error!,
+                            fallback:
+                                'No se pudo cargar la informacion del curso.',
+                          ),
                           style: const TextStyle(color: AppTheme.textMuted),
                         ),
                         const SizedBox(height: 18),

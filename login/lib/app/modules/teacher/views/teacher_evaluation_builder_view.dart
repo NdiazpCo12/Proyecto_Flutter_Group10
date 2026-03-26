@@ -11,10 +11,22 @@ class TeacherEvaluationBuilderView extends StatefulWidget {
 class _TeacherEvaluationBuilderViewState
     extends State<TeacherEvaluationBuilderView> {
   final _nameController = TextEditingController();
-  String _course = 'Mobile Development';
-  String _groupCategory = 'Project Teams';
+  final TeacherHomeController _controller = Get.find<TeacherHomeController>();
+
+  String? _courseId;
+  String? _categoryId;
+  List<RobleGroupCategoryRecord> _categories = const [];
   bool _publicResults = true;
   double _durationDays = 7;
+  bool _isInitializing = true;
+  bool _isLoadingCategories = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeForm();
+  }
 
   @override
   void dispose() {
@@ -22,8 +34,139 @@ class _TeacherEvaluationBuilderViewState
     super.dispose();
   }
 
+  Future<void> _initializeForm() async {
+    if (_controller.courses.isEmpty) {
+      await _controller.fetchCourses();
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    if (_controller.courses.isNotEmpty) {
+      _courseId = _controller.courses.first.id;
+      await _loadCategories(_courseId!, preserveSelection: false);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isInitializing = false);
+  }
+
+  Future<void> _loadCategories(
+    String courseId, {
+    bool preserveSelection = true,
+  }) async {
+    setState(() => _isLoadingCategories = true);
+
+    try {
+      final categories = await _controller.loadCourseCategories(courseId);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _categories = categories;
+        if (preserveSelection &&
+            categories.any((category) => category.id == _categoryId)) {
+          _categoryId = _categoryId;
+        } else {
+          _categoryId = categories.isNotEmpty ? categories.first.id : null;
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingCategories = false);
+      }
+    }
+  }
+
+  Future<void> _submit() async {
+    final assessmentName = _nameController.text.trim();
+    if (assessmentName.isEmpty) {
+      Get.snackbar(
+        'Assessment',
+        'Ingresa un nombre para el assessment.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+      return;
+    }
+
+    if (_courseId == null) {
+      Get.snackbar(
+        'Assessment',
+        'Selecciona un curso antes de continuar.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+      return;
+    }
+
+    if (_categoryId == null) {
+      Get.snackbar(
+        'Assessment',
+        'El curso seleccionado no tiene categorias disponibles.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final assessmentId = await _controller.createAssessment(
+        name: assessmentName,
+        courseId: _courseId!,
+        categoryId: _categoryId!,
+        publicResults: _publicResults,
+        durationDays: _durationDays.round(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Get.off(() => TeacherAssessmentDetailView(assessmentId: assessmentId));
+      Get.snackbar(
+        'Evaluacion creada',
+        'La evaluacion se guardo correctamente con la rubrica predeterminada.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      Get.snackbar(
+        'Error',
+        formatUserErrorMessage(
+          error,
+          fallback: 'No se pudo crear la evaluacion.',
+        ),
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [
@@ -103,39 +246,83 @@ class _TeacherEvaluationBuilderViewState
                         ),
                       ),
                       const SizedBox(height: 18),
-                      _SelectorTile<String>(
-                        label: 'Course *',
-                        hint: 'Select a course',
-                        value: _course,
-                        options: const [
-                          'Mobile Development',
-                          'UX Engineering',
-                          'Software Architecture',
-                        ],
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() => _course = value);
-                        },
-                      ),
+                      const _FieldLabel('Course *'),
+                      const SizedBox(height: 10),
+                      Obx(() {
+                        final courses = _controller.courses;
+                        if (courses.isEmpty) {
+                          return const Text(
+                            'Primero debes crear al menos un curso.',
+                            style: TextStyle(color: AppTheme.textMuted),
+                          );
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          initialValue: _courseId,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          decoration: const InputDecoration(
+                            hintText: 'Select a course',
+                          ),
+                          items: courses
+                              .map(
+                                (course) => DropdownMenuItem<String>(
+                                  value: course.id,
+                                  child: Text(
+                                    '${course.name} (${course.code})',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _isSubmitting
+                              ? null
+                              : (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _courseId = value;
+                                    _categoryId = null;
+                                  });
+                                  _loadCategories(
+                                    value,
+                                    preserveSelection: false,
+                                  );
+                                },
+                        );
+                      }),
                       const SizedBox(height: 18),
-                      _SelectorTile<String>(
-                        label: 'Group Category *',
-                        hint: 'Select group category',
-                        value: _groupCategory,
-                        options: const [
-                          'Project Teams',
-                          'Lab Groups',
-                          'Squads',
-                        ],
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() => _groupCategory = value);
-                        },
-                      ),
+                      const _FieldLabel('Group Category *'),
+                      const SizedBox(height: 10),
+                      if (_isLoadingCategories)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 18),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppTheme.primaryGreen,
+                            ),
+                          ),
+                        )
+                      else
+                        DropdownButtonFormField<String>(
+                          initialValue: _categoryId,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          decoration: const InputDecoration(
+                            hintText: 'Select group category',
+                          ),
+                          items: _categories
+                              .map(
+                                (category) => DropdownMenuItem<String>(
+                                  value: category.id,
+                                  child: Text(category.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _isSubmitting
+                              ? null
+                              : (value) {
+                                  setState(() => _categoryId = value);
+                                },
+                        ),
                     ],
                   ),
                 ),
@@ -195,9 +382,11 @@ class _TeacherEvaluationBuilderViewState
                         max: 30,
                         divisions: 29,
                         activeColor: AppTheme.primaryGreen,
-                        onChanged: (value) {
-                          setState(() => _durationDays = value);
-                        },
+                        onChanged: _isSubmitting
+                            ? null
+                            : (value) {
+                                setState(() => _durationDays = value);
+                              },
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 4),
@@ -279,11 +468,38 @@ class _TeacherEvaluationBuilderViewState
                           Switch(
                             value: _publicResults,
                             activeThumbColor: AppTheme.primaryGreen,
-                            onChanged: (value) {
-                              setState(() => _publicResults = value);
-                            },
+                            onChanged: _isSubmitting
+                                ? null
+                                : (value) {
+                                    setState(() => _publicResults = value);
+                                  },
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _SurfaceCard(
+                  borderRadius: 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Default Rubric',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'This version uses the default rubric: Punctuality, Contributions, Commitment and Attitude.',
+                        style: TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 16,
+                          height: 1.35,
+                        ),
                       ),
                     ],
                   ),
@@ -292,28 +508,23 @@ class _TeacherEvaluationBuilderViewState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () {
-                      Get.snackbar(
-                        'Assessment created',
-                        'The assessment is ready to be published.',
-                        snackPosition: SnackPosition.BOTTOM,
-                        margin: const EdgeInsets.all(16),
-                      );
-                    },
+                    onPressed: _isSubmitting ? null : _submit,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(56),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
                     ),
-                    child: const Text('Create Assessment'),
+                    child: Text(
+                      _isSubmitting ? 'Creating...' : 'Create Assessment',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: Get.back,
+                    onPressed: _isSubmitting ? null : Get.back,
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(56),
                       backgroundColor: Colors.white,
