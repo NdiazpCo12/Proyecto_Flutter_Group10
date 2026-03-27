@@ -238,17 +238,6 @@ class _PillTag extends StatelessWidget {
   }
 }
 
-String _mockDueDate(TeacherEvaluation evaluation) {
-  switch (evaluation.id) {
-    case 'eval-1':
-      return 'Feb 28, 2026';
-    case 'eval-2':
-      return 'Mar 5, 2026';
-    default:
-      return 'Mar 12, 2026';
-  }
-}
-
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.label);
 
@@ -257,48 +246,6 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(label, style: const TextStyle(fontWeight: FontWeight.w700));
-  }
-}
-
-class _SelectorTile<T> extends StatelessWidget {
-  const _SelectorTile({
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-    this.hint,
-  });
-
-  final String label;
-  final T value;
-  final List<T> options;
-  final ValueChanged<T?> onChanged;
-  final String? hint;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _FieldLabel(label),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<T>(
-          initialValue: value,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          decoration: InputDecoration(hintText: hint),
-          borderRadius: BorderRadius.circular(18),
-          items: options
-              .map(
-                (option) => DropdownMenuItem<T>(
-                  value: option,
-                  child: Text(option.toString()),
-                ),
-              )
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
   }
 }
 
