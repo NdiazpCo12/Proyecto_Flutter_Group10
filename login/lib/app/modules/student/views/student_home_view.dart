@@ -32,10 +32,11 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   bool _newResults = true;
   String _displayName = 'Student';
   bool _isLoadingCourses = true;
+  bool _isLoadingAssessments = true;
   List<StudentCourseEnrollment> _courses = [];
+  List<RobleStudentAssessmentAssignment> _assessments = [];
   final RobleApiService _api = RobleApiService();
 
-  final List<_StudentAssessment> _assessments = _buildMockAssessments();
   static const _resultsSummary = _StudentResultsSummary(
     overallScore: 4.5,
     assessmentCount: 3,
@@ -69,7 +70,11 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   void initState() {
     super.initState();
     _loadCurrentUser();
-    _fetchCourses();
+    _refreshStudentData();
+  }
+
+  Future<void> _refreshStudentData() async {
+    await Future.wait<void>([_fetchCourses(), _fetchAssessments()]);
   }
 
   Future<void> _fetchCourses() async {
@@ -99,6 +104,44 @@ class _StudentHomeViewState extends State<StudentHomeView> {
     }
   }
 
+  Future<void> _fetchAssessments() async {
+    setState(() => _isLoadingAssessments = true);
+    try {
+      final user = await Get.find<AuthService>().getStoredUser();
+      final email = user?.email ?? '';
+      final fetched = await _api.getStudentAssessments(email);
+      if (!mounted) return;
+      setState(() {
+        _assessments = fetched;
+        _isLoadingAssessments = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingAssessments = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            formatUserErrorMessage(
+              e,
+              fallback: 'No se pudieron cargar las evaluaciones.',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitAssessment(
+    RobleStudentAssessmentAssignment assessment,
+    Map<String, Map<String, int>> scoresByReviewee,
+  ) async {
+    await _api.submitStudentAssessment(
+      assignment: assessment,
+      scoresByReviewee: scoresByReviewee,
+    );
+    await _fetchAssessments();
+  }
+
   Future<void> _loadCurrentUser() async {
     final user = await Get.find<AuthService>().getStoredUser();
     final name = user?.name.trim();
@@ -118,7 +161,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
     }
 
     setState(() => _isSyncing = true);
-    await _fetchCourses();
+    await _refreshStudentData();
     if (!mounted) return;
 
     setState(() => _isSyncing = false);
@@ -140,7 +183,12 @@ class _StudentHomeViewState extends State<StudentHomeView> {
             courses: _courses,
             displayName: _displayName,
           ),
-          _StudentAssessmentsView(assessments: _assessments),
+          _StudentAssessmentsView(
+            assessments: _assessments,
+            isLoading: _isLoadingAssessments,
+            onRefresh: _fetchAssessments,
+            onSubmitAssessment: _submitAssessment,
+          ),
           const _StudentResultsView(summary: _resultsSummary),
           _StudentProfile(
             emailNotifications: _emailNotifications,
@@ -190,52 +238,6 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   }
 }
 
-class _StudentAssessment {
-  _StudentAssessment({
-    required this.title,
-    required this.courseCode,
-    required this.courseName,
-    required this.dueDate,
-    required this.groupType,
-    required this.criteria,
-    required this.teammates,
-    required this.isSubmitted,
-  });
-
-  final String title;
-  final String courseCode;
-  final String courseName;
-  final String dueDate;
-  final String groupType;
-  final List<_StudentCriterion> criteria;
-  final List<_StudentTeammateEvaluation> teammates;
-  bool isSubmitted;
-}
-
-class _StudentCriterion {
-  const _StudentCriterion({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.ratingLabels,
-  });
-
-  final String id;
-  final String title;
-  final String description;
-  final Map<int, String> ratingLabels;
-}
-
-class _StudentTeammateEvaluation {
-  _StudentTeammateEvaluation({
-    required this.name,
-    required Map<String, int> ratings,
-  }) : ratings = Map<String, int>.from(ratings);
-
-  final String name;
-  final Map<String, int> ratings;
-}
-
 class _StudentResultsSummary {
   const _StudentResultsSummary({
     required this.overallScore,
@@ -269,145 +271,4 @@ class _StudentAssessmentHistoryItem {
   final String title;
   final String date;
   final double score;
-}
-
-List<_StudentAssessment> _buildMockAssessments() {
-  const criteria = [
-    _StudentCriterion(
-      id: 'punctuality',
-      title: 'Punctuality',
-      description: 'Arrives on time for meetings and meets deadlines',
-      ratingLabels: {
-        1: 'Poor: Rarely on time and often misses deadlines',
-        2: 'Below Average: Sometimes late and inconsistent with deadlines',
-        3: 'Average: Usually punctual with minor delays',
-        4: 'Good: Consistently on time and meets deadlines',
-        5: 'Excellent: Always prepared and reliably ahead of schedule',
-      },
-    ),
-    _StudentCriterion(
-      id: 'contributions',
-      title: 'Contributions',
-      description: 'Quality and quantity of work contributed to the team',
-      ratingLabels: {
-        1: 'Poor: Minimal contribution to team deliverables',
-        2: 'Below Average: Inconsistent contribution to shared work',
-        3: 'Average: Completes assigned work satisfactorily',
-        4: 'Good: Strong contributions that support the team',
-        5: 'Excellent: Outstanding contributions that elevate the team',
-      },
-    ),
-    _StudentCriterion(
-      id: 'commitment',
-      title: 'Commitment',
-      description: 'Dedication to team goals and willingness to help',
-      ratingLabels: {
-        1: 'Poor: Rarely engaged with team goals',
-        2: 'Below Average: Needs reminders to stay engaged',
-        3: 'Average: Committed to assigned tasks',
-        4: 'Good: Invested in helping the whole team succeed',
-        5: 'Excellent: Exceptionally dependable and team-oriented',
-      },
-    ),
-    _StudentCriterion(
-      id: 'attitude',
-      title: 'Attitude',
-      description: 'Positivity, collaboration, and team dynamics',
-      ratingLabels: {
-        1: 'Poor: Negative impact on collaboration',
-        2: 'Below Average: Sometimes displays poor attitude',
-        3: 'Average: Maintains a workable team attitude',
-        4: 'Good: Very positive and supportive team member',
-        5: 'Excellent: Inspires strong collaboration and morale',
-      },
-    ),
-  ];
-
-  return [
-    _StudentAssessment(
-      title: 'Sprint 1 Team Review',
-      courseCode: 'CS 401',
-      courseName: 'Software Engineering',
-      dueDate: 'Feb 28, 2026',
-      groupType: 'Project Teams',
-      isSubmitted: false,
-      criteria: criteria,
-      teammates: [
-        _StudentTeammateEvaluation(
-          name: 'Alice Johnson',
-          ratings: {
-            'punctuality': 4,
-            'contributions': 5,
-            'commitment': 3,
-            'attitude': 2,
-          },
-        ),
-        _StudentTeammateEvaluation(
-          name: 'David Lee',
-          ratings: {
-            'punctuality': 3,
-            'contributions': 3,
-            'commitment': 3,
-            'attitude': 4,
-          },
-        ),
-        _StudentTeammateEvaluation(
-          name: 'Maria Garcia',
-          ratings: {
-            'punctuality': 5,
-            'contributions': 4,
-            'commitment': 5,
-            'attitude': 5,
-          },
-        ),
-        _StudentTeammateEvaluation(
-          name: 'Noah Wilson',
-          ratings: {
-            'punctuality': 4,
-            'contributions': 4,
-            'commitment': 4,
-            'attitude': 4,
-          },
-        ),
-      ],
-    ),
-    _StudentAssessment(
-      title: 'Lab Group Evaluation',
-      courseCode: 'CS 302',
-      courseName: 'Data Structures',
-      dueDate: 'Mar 1, 2026',
-      groupType: 'Lab Groups',
-      isSubmitted: false,
-      criteria: criteria,
-      teammates: [
-        _StudentTeammateEvaluation(
-          name: 'Emma Carter',
-          ratings: {
-            'punctuality': 4,
-            'contributions': 4,
-            'commitment': 5,
-            'attitude': 4,
-          },
-        ),
-        _StudentTeammateEvaluation(
-          name: 'Liam Brown',
-          ratings: {
-            'punctuality': 3,
-            'contributions': 4,
-            'commitment': 3,
-            'attitude': 3,
-          },
-        ),
-        _StudentTeammateEvaluation(
-          name: 'Sophia Martinez',
-          ratings: {
-            'punctuality': 5,
-            'contributions': 5,
-            'commitment': 4,
-            'attitude': 5,
-          },
-        ),
-      ],
-    ),
-  ];
 }

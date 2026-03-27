@@ -548,3 +548,260 @@ class RobleAssessmentDetailData {
   final RobleGroupCategoryRecord? category;
   final List<RobleAssessmentCriterionDetail> criteria;
 }
+
+class RobleAssessmentSubmission {
+  RobleAssessmentSubmission({
+    this.id,
+    required this.assessmentId,
+    required this.courseId,
+    required this.categoryId,
+    required this.groupId,
+    required this.reviewerStudentId,
+    required this.status,
+    required this.generalComment,
+    required this.startedAt,
+    required this.submittedAt,
+    required this.createdAt,
+  });
+
+  final String? id;
+  final String assessmentId;
+  final String courseId;
+  final String categoryId;
+  final String groupId;
+  final String reviewerStudentId;
+  final String status;
+  final String generalComment;
+  final DateTime? startedAt;
+  final DateTime? submittedAt;
+  final DateTime createdAt;
+
+  bool get isSubmitted {
+    return status.trim().toLowerCase() == 'submitted' || submittedAt != null;
+  }
+
+  factory RobleAssessmentSubmission.fromJson(Map<String, dynamic> json) {
+    return RobleAssessmentSubmission(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      assessmentId: json['assessment_id']?.toString() ?? '',
+      courseId: json['course_id']?.toString() ?? '',
+      categoryId: json['category_id']?.toString() ?? '',
+      groupId: json['group_id']?.toString() ?? '',
+      reviewerStudentId: json['reviewer_student_id']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'pending',
+      generalComment: json['general_comment']?.toString() ?? '',
+      startedAt: _parseOptionalDate(json['started_at']),
+      submittedAt: _parseOptionalDate(json['submitted_at']),
+      createdAt: _parseOptionalDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'assessment_id': assessmentId,
+    'course_id': courseId,
+    'category_id': categoryId,
+    'group_id': groupId,
+    'reviewer_student_id': reviewerStudentId,
+    'status': status,
+    'general_comment': generalComment,
+    'started_at': startedAt?.toIso8601String() ?? '',
+    'submitted_at': submittedAt?.toIso8601String() ?? '',
+    'created_at': createdAt.toIso8601String(),
+  };
+}
+
+class RobleAssessmentPeerReview {
+  RobleAssessmentPeerReview({
+    this.id,
+    required this.submissionId,
+    required this.assessmentId,
+    required this.courseId,
+    required this.categoryId,
+    required this.groupId,
+    required this.reviewerStudentId,
+    required this.revieweeStudentId,
+    required this.generalComment,
+    required this.createdAt,
+  });
+
+  final String? id;
+  final String submissionId;
+  final String assessmentId;
+  final String courseId;
+  final String categoryId;
+  final String groupId;
+  final String reviewerStudentId;
+  final String revieweeStudentId;
+  final String generalComment;
+  final DateTime createdAt;
+
+  factory RobleAssessmentPeerReview.fromJson(Map<String, dynamic> json) {
+    return RobleAssessmentPeerReview(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      submissionId: json['submission_id']?.toString() ?? '',
+      assessmentId: json['assessment_id']?.toString() ?? '',
+      courseId: json['course_id']?.toString() ?? '',
+      categoryId: json['category_id']?.toString() ?? '',
+      groupId: json['group_id']?.toString() ?? '',
+      reviewerStudentId: json['reviewer_student_id']?.toString() ?? '',
+      revieweeStudentId: json['reviewee_student_id']?.toString() ?? '',
+      generalComment: json['general_comment']?.toString() ?? '',
+      createdAt: _parseOptionalDate(json['created_at']) ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'submission_id': submissionId,
+    'assessment_id': assessmentId,
+    'course_id': courseId,
+    'category_id': categoryId,
+    'group_id': groupId,
+    'reviewer_student_id': reviewerStudentId,
+    'reviewee_student_id': revieweeStudentId,
+    'general_comment': generalComment,
+    'created_at': createdAt.toIso8601String(),
+  };
+}
+
+class RobleAssessmentScore {
+  RobleAssessmentScore({
+    this.id,
+    required this.peerReviewId,
+    required this.assessmentId,
+    required this.courseId,
+    required this.categoryId,
+    required this.groupId,
+    required this.reviewerStudentId,
+    required this.revieweeStudentId,
+    required this.criterionId,
+    required this.scoreValue,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String? id;
+  final String peerReviewId;
+  final String assessmentId;
+  final String courseId;
+  final String categoryId;
+  final String groupId;
+  final String reviewerStudentId;
+  final String revieweeStudentId;
+  final String criterionId;
+  final int scoreValue;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  factory RobleAssessmentScore.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now();
+    return RobleAssessmentScore(
+      id: json['_id'] as String? ?? json['id'] as String?,
+      peerReviewId: json['peer_review_id']?.toString() ?? '',
+      assessmentId: json['assessment_id']?.toString() ?? '',
+      courseId: json['course_id']?.toString() ?? '',
+      categoryId: json['category_id']?.toString() ?? '',
+      groupId: json['group_id']?.toString() ?? '',
+      reviewerStudentId: json['reviewer_student_id']?.toString() ?? '',
+      revieweeStudentId: json['reviewee_student_id']?.toString() ?? '',
+      criterionId: json['criterion_id']?.toString() ?? '',
+      scoreValue: int.tryParse(json['score_value']?.toString() ?? '') ?? 0,
+      createdAt: _parseOptionalDate(json['created_at']) ?? now,
+      updatedAt: _parseOptionalDate(json['updated_at']) ?? now,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'peer_review_id': peerReviewId,
+    'assessment_id': assessmentId,
+    'course_id': courseId,
+    'category_id': categoryId,
+    'group_id': groupId,
+    'reviewer_student_id': reviewerStudentId,
+    'reviewee_student_id': revieweeStudentId,
+    'criterion_id': criterionId,
+    'score_value': scoreValue,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
+}
+
+class RobleStudentAssessmentTeammate {
+  const RobleStudentAssessmentTeammate({
+    required this.studentId,
+    required this.name,
+    required this.email,
+  });
+
+  final String studentId;
+  final String name;
+  final String email;
+}
+
+class RobleStudentAssessmentAssignment {
+  const RobleStudentAssessmentAssignment({
+    required this.assessment,
+    required this.course,
+    required this.category,
+    required this.group,
+    required this.reviewer,
+    required this.teammates,
+    required this.criteria,
+    required this.isSubmitted,
+    required this.submissionId,
+    required this.submissionStatus,
+    required this.submittedAt,
+    required this.savedScoresByReviewee,
+  });
+
+  final RobleAssessment assessment;
+  final RobleCourseHome course;
+  final RobleGroupCategoryRecord? category;
+  final RobleCourseGroupRecord group;
+  final RobleStudentRecord reviewer;
+  final List<RobleStudentAssessmentTeammate> teammates;
+  final List<RobleAssessmentCriterionDetail> criteria;
+  final bool isSubmitted;
+  final String? submissionId;
+  final String? submissionStatus;
+  final DateTime? submittedAt;
+  final Map<String, Map<String, int>> savedScoresByReviewee;
+
+  String get categoryName => category?.name ?? 'Sin categoria';
+
+  String get statusLabel {
+    if (isSubmitted) {
+      return 'Completed';
+    }
+
+    final normalized = assessment.status.trim().toLowerCase();
+    final now = DateTime.now();
+    if (normalized == 'closed' || now.isAfter(assessment.endsAt)) {
+      return 'Closed';
+    }
+    if (now.isBefore(assessment.startsAt)) {
+      return 'Scheduled';
+    }
+    if (teammates.isEmpty) {
+      return 'No teammates';
+    }
+    return 'Active';
+  }
+
+  bool get canSubmit {
+    final now = DateTime.now();
+    return !isSubmitted &&
+        teammates.isNotEmpty &&
+        criteria.isNotEmpty &&
+        assessment.status.trim().toLowerCase() != 'closed' &&
+        !now.isBefore(assessment.startsAt) &&
+        !now.isAfter(assessment.endsAt);
+  }
+}
+
+DateTime? _parseOptionalDate(dynamic value) {
+  final text = value?.toString().trim() ?? '';
+  if (text.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(text);
+}

@@ -1,9 +1,21 @@
 part of 'student_home_view.dart';
 
 class _StudentAssessmentsView extends StatefulWidget {
-  const _StudentAssessmentsView({required this.assessments});
+  const _StudentAssessmentsView({
+    required this.assessments,
+    required this.isLoading,
+    required this.onRefresh,
+    required this.onSubmitAssessment,
+  });
 
-  final List<_StudentAssessment> assessments;
+  final List<RobleStudentAssessmentAssignment> assessments;
+  final bool isLoading;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function(
+    RobleStudentAssessmentAssignment assessment,
+    Map<String, Map<String, int>> scoresByReviewee,
+  )
+  onSubmitAssessment;
 
   @override
   State<_StudentAssessmentsView> createState() =>
@@ -11,37 +23,94 @@ class _StudentAssessmentsView extends StatefulWidget {
 }
 
 class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
-  _StudentAssessment? _selectedAssessment;
+  RobleStudentAssessmentAssignment? _selectedAssessment;
   int _currentTeammateIndex = 0;
+  bool _isSubmitting = false;
+  Map<String, Map<String, int>> _draftRatings = {};
 
-  void _openAssessment(_StudentAssessment assessment) {
+  void _openAssessment(RobleStudentAssessmentAssignment assessment) {
+    if (!assessment.canSubmit) {
+      return;
+    }
+
+    final savedScores = <String, Map<String, int>>{
+      for (final teammate in assessment.teammates)
+        teammate.studentId: Map<String, int>.from(
+          assessment.savedScoresByReviewee[teammate.studentId] ?? const {},
+        ),
+    };
+
     setState(() {
       _selectedAssessment = assessment;
       _currentTeammateIndex = 0;
+      _draftRatings = savedScores;
     });
   }
 
   void _closeAssessment() {
-    setState(() {
-      _selectedAssessment = null;
-      _currentTeammateIndex = 0;
-    });
-  }
-
-  void _setRating(_StudentCriterion criterion, int value) {
-    final assessment = _selectedAssessment;
-    if (assessment == null) {
+    if (_isSubmitting) {
       return;
     }
 
     setState(() {
-      assessment.teammates[_currentTeammateIndex].ratings[criterion.id] = value;
+      _selectedAssessment = null;
+      _currentTeammateIndex = 0;
+      _draftRatings = {};
     });
+  }
+
+  void _setRating(
+    RobleAssessmentCriterionDetail criterion,
+    RobleStudentAssessmentTeammate teammate,
+    int value,
+  ) {
+    final criterionId = criterion.criterion.id?.trim() ?? '';
+    if (criterionId.isEmpty || _selectedAssessment == null || _isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _draftRatings.putIfAbsent(
+        teammate.studentId,
+        () => <String, int>{},
+      )[criterionId] = value;
+    });
+  }
+
+  bool _validateTeammate(
+    RobleStudentAssessmentAssignment assessment,
+    RobleStudentAssessmentTeammate teammate,
+  ) {
+    final teammateRatings = _draftRatings[teammate.studentId] ?? const {};
+    for (final criterion in assessment.criteria) {
+      final criterionId = criterion.criterion.id?.trim() ?? '';
+      if (criterionId.isEmpty) {
+        continue;
+      }
+      if (!teammateRatings.containsKey(criterionId)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _showIncompleteMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Completa todos los criterios antes de continuar.'),
+      ),
+    );
   }
 
   Future<void> _goNext() async {
     final assessment = _selectedAssessment;
-    if (assessment == null) {
+    if (assessment == null || _isSubmitting) {
+      return;
+    }
+
+    final teammate = assessment.teammates[_currentTeammateIndex];
+    if (!_validateTeammate(assessment, teammate)) {
+      _showIncompleteMessage();
       return;
     }
 
@@ -59,13 +128,11 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
             borderRadius: BorderRadius.circular(20),
           ),
           title: const Text(
-            'Submit Assessment?',
+            'Enviar evaluacion',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           content: Text(
-            'You are about to submit your peer assessment for '
-            '${assessment.teammates.length} teammates. This action cannot be '
-            'undone. Are you sure you want to continue?',
+            'Se enviaran las calificaciones de ${assessment.teammates.length} companeros. Esta accion no se puede deshacer.',
             style: const TextStyle(color: AppTheme.textMuted, height: 1.5),
           ),
           actions: [
@@ -76,7 +143,7 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
-              child: const Text('Cancel'),
+              child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -86,7 +153,7 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
                 ),
               ),
               child: const Text(
-                'Yes, Submit',
+                'Enviar',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -99,15 +166,43 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
       return;
     }
 
-    setState(() {
-      assessment.isSubmitted = true;
-      _selectedAssessment = null;
-      _currentTeammateIndex = 0;
-    });
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.onSubmitAssessment(assessment, _draftRatings);
+      if (!mounted) {
+        return;
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${assessment.title} submitted successfully.')),
-    );
+      setState(() {
+        _selectedAssessment = null;
+        _currentTeammateIndex = 0;
+        _draftRatings = {};
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${assessment.assessment.name} enviada correctamente.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            formatUserErrorMessage(
+              error,
+              fallback: 'No se pudo enviar la evaluacion.',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -116,7 +211,9 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
     if (assessment == null) {
       return _StudentAssessmentList(
         assessments: widget.assessments,
+        isLoading: widget.isLoading,
         onOpenAssessment: _openAssessment,
+        onRefresh: widget.onRefresh,
       );
     }
 
@@ -125,8 +222,10 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
       teammate: assessment.teammates[_currentTeammateIndex],
       teammateIndex: _currentTeammateIndex,
       totalTeammates: assessment.teammates.length,
+      draftRatings: _draftRatings,
+      isSubmitting: _isSubmitting,
       onBack: _closeAssessment,
-      onPrevious: _currentTeammateIndex == 0
+      onPrevious: _currentTeammateIndex == 0 || _isSubmitting
           ? null
           : () => setState(() => _currentTeammateIndex -= 1),
       onNext: _goNext,
@@ -138,63 +237,89 @@ class _StudentAssessmentsViewState extends State<_StudentAssessmentsView> {
 class _StudentAssessmentList extends StatelessWidget {
   const _StudentAssessmentList({
     required this.assessments,
+    required this.isLoading,
     required this.onOpenAssessment,
+    required this.onRefresh,
   });
 
-  final List<_StudentAssessment> assessments;
-  final ValueChanged<_StudentAssessment> onOpenAssessment;
+  final List<RobleStudentAssessmentAssignment> assessments;
+  final bool isLoading;
+  final ValueChanged<RobleStudentAssessmentAssignment> onOpenAssessment;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 120),
-      children: [
-        Container(
-          color: AppTheme.primaryGreen,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Assessments',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 120),
+        children: [
+          Container(
+            color: AppTheme.primaryGreen,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Assessments',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Complete your evaluations',
-                    style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
-                  ),
-                ],
+                    SizedBox(height: 4),
+                    Text(
+                      'Califica a tus companeros cuando la actividad este activa.',
+                      style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
-          child: Column(
-            children: [
-              ...assessments.map(
-                (assessment) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _StudentAssessmentCard(
-                    assessment: assessment,
-                    onTap: assessment.isSubmitted
-                        ? null
-                        : () => onOpenAssessment(assessment),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
+            child: isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryGreen,
+                      ),
+                    ),
+                  )
+                : assessments.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                      child: Text(
+                        'No tienes evaluaciones disponibles por ahora.',
+                        style: TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: assessments
+                        .map(
+                          (assessment) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _StudentAssessmentCard(
+                              assessment: assessment,
+                              onTap: assessment.canSubmit
+                                  ? () => onOpenAssessment(assessment)
+                                  : null,
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
-                ),
-              ),
-            ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -202,11 +327,24 @@ class _StudentAssessmentList extends StatelessWidget {
 class _StudentAssessmentCard extends StatelessWidget {
   const _StudentAssessmentCard({required this.assessment, required this.onTap});
 
-  final _StudentAssessment assessment;
+  final RobleStudentAssessmentAssignment assessment;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final isCompleted = assessment.isSubmitted;
+    final chipColor = switch (assessment.statusLabel) {
+      'Completed' => const Color(0xFFE6F4EA),
+      'Active' => AppTheme.primaryGreen,
+      'Scheduled' => const Color(0xFF4F8B5B),
+      'Closed' => AppTheme.secondarySlate,
+      _ => const Color(0xFFECEFF3),
+    };
+    final chipTextColor =
+        isCompleted || assessment.statusLabel == 'No teammates'
+        ? AppTheme.primaryGreen
+        : Colors.white;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
       decoration: BoxDecoration(
@@ -232,17 +370,13 @@ class _StudentAssessmentCard extends StatelessWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: assessment.isSubmitted
-                      ? const Color(0xFFE6F4EA)
-                      : AppTheme.primaryGreen,
+                  color: chipColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  assessment.isSubmitted ? 'Completed' : 'Active',
+                  assessment.statusLabel,
                   style: TextStyle(
-                    color: assessment.isSubmitted
-                        ? AppTheme.primaryGreen
-                        : Colors.white,
+                    color: chipTextColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -260,27 +394,33 @@ class _StudentAssessmentCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            assessment.title,
+            assessment.assessment.name,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Text(
-            assessment.courseCode,
+            '${assessment.course.code} - ${assessment.course.name}',
             style: const TextStyle(fontSize: 15, color: AppTheme.textMuted),
           ),
           const SizedBox(height: 28),
           _AssessmentMetaRow(
             icon: Icons.calendar_today_outlined,
-            text: 'Due: ${assessment.dueDate}',
+            text:
+                'Disponible hasta ${_formatStudentDate(assessment.assessment.endsAt)}',
+          ),
+          const SizedBox(height: 12),
+          _AssessmentMetaRow(
+            icon: Icons.category_outlined,
+            text: assessment.categoryName,
           ),
           const SizedBox(height: 12),
           _AssessmentMetaRow(
             icon: Icons.group_outlined,
-            text: assessment.groupType,
+            text: assessment.group.groupName,
           ),
           const SizedBox(height: 18),
           Text(
-            'Evaluate ${assessment.teammates.length} teammates',
+            'Debes evaluar a ${assessment.teammates.length} companeros',
             style: const TextStyle(
               fontSize: 15,
               color: AppTheme.secondarySlate,
@@ -301,9 +441,7 @@ class _StudentAssessmentCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                assessment.isSubmitted
-                    ? 'Assessment Submitted'
-                    : 'Start Assessment',
+                _assessmentActionLabel(assessment),
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -311,6 +449,21 @@ class _StudentAssessmentCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _assessmentActionLabel(RobleStudentAssessmentAssignment assessment) {
+    switch (assessment.statusLabel) {
+      case 'Completed':
+        return 'Evaluacion enviada';
+      case 'Scheduled':
+        return 'Disponible pronto';
+      case 'Closed':
+        return 'Actividad cerrada';
+      case 'No teammates':
+        return 'Sin companeros para evaluar';
+      default:
+        return 'Iniciar evaluacion';
+    }
   }
 }
 
@@ -320,24 +473,35 @@ class _StudentAssessmentDetail extends StatelessWidget {
     required this.teammate,
     required this.teammateIndex,
     required this.totalTeammates,
+    required this.draftRatings,
+    required this.isSubmitting,
     required this.onBack,
     required this.onPrevious,
     required this.onNext,
     required this.onRateCriterion,
   });
 
-  final _StudentAssessment assessment;
-  final _StudentTeammateEvaluation teammate;
+  final RobleStudentAssessmentAssignment assessment;
+  final RobleStudentAssessmentTeammate teammate;
   final int teammateIndex;
   final int totalTeammates;
+  final Map<String, Map<String, int>> draftRatings;
+  final bool isSubmitting;
   final VoidCallback onBack;
   final VoidCallback? onPrevious;
   final VoidCallback onNext;
-  final void Function(_StudentCriterion criterion, int value) onRateCriterion;
+  final void Function(
+    RobleAssessmentCriterionDetail criterion,
+    RobleStudentAssessmentTeammate teammate,
+    int value,
+  )
+  onRateCriterion;
 
   @override
   Widget build(BuildContext context) {
-    final progress = (teammateIndex + 1) / totalTeammates;
+    final progress = totalTeammates == 0
+        ? 0.0
+        : (teammateIndex + 1) / totalTeammates;
     final isLastTeammate = teammateIndex == totalTeammates - 1;
 
     return Column(
@@ -352,7 +516,7 @@ class _StudentAssessmentDetail extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextButton.icon(
-                    onPressed: onBack,
+                    onPressed: isSubmitting ? null : onBack,
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.zero,
@@ -364,7 +528,7 @@ class _StudentAssessmentDetail extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    assessment.title,
+                    assessment.assessment.name,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -373,9 +537,17 @@ class _StudentAssessmentDetail extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${assessment.courseCode} - ${assessment.courseName}',
+                    '${assessment.course.code} - ${assessment.course.name}',
                     style: const TextStyle(
                       fontSize: 16,
+                      color: Color(0xFFDDE9DE),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${assessment.categoryName} • ${assessment.group.groupName}',
+                    style: const TextStyle(
+                      fontSize: 14,
                       color: Color(0xFFDDE9DE),
                     ),
                   ),
@@ -398,12 +570,12 @@ class _StudentAssessmentDetail extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          'Progress: ${teammateIndex + 1} of $totalTeammates',
+                          'Companero ${teammateIndex + 1} de $totalTeammates',
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         const Spacer(),
                         Text(
-                          '${teammateIndex + 1} completed',
+                          _formatStudentDate(assessment.assessment.endsAt),
                           style: const TextStyle(color: AppTheme.textMuted),
                         ),
                       ],
@@ -444,63 +616,38 @@ class _StudentAssessmentDetail extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Evaluating: ${teammate.name}',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        'Rate your teammate on the following criteria',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: AppTheme.primaryGreen,
-                                      width: 2,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.check,
-                                    size: 18,
-                                    color: AppTheme.primaryGreen,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              teammate.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              teammate.email,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: AppTheme.textMuted,
+                              ),
                             ),
                             const SizedBox(height: 18),
                             ...List.generate(assessment.criteria.length, (
                               index,
                             ) {
                               final criterion = assessment.criteria[index];
+                              final criterionId =
+                                  criterion.criterion.id?.trim() ?? '';
                               final rating =
-                                  teammate.ratings[criterion.id] ?? 0;
+                                  draftRatings[teammate
+                                      .studentId]?[criterionId];
                               return _CriterionRatingRow(
                                 criterion: criterion,
                                 rating: rating,
                                 isLast: index == assessment.criteria.length - 1,
+                                isEnabled: !isSubmitting,
                                 onChanged: (value) =>
-                                    onRateCriterion(criterion, value),
+                                    onRateCriterion(criterion, teammate, value),
                               );
                             }),
                           ],
@@ -547,7 +694,7 @@ class _StudentAssessmentDetail extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton(
-                          onPressed: onNext,
+                          onPressed: isSubmitting ? null : onNext,
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(48),
                             shape: RoundedRectangleBorder(
@@ -555,9 +702,11 @@ class _StudentAssessmentDetail extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            isLastTeammate
-                                ? 'Submit Assessment'
-                                : 'Next Teammate',
+                            isSubmitting
+                                ? 'Enviando...'
+                                : isLastTeammate
+                                ? 'Enviar evaluacion'
+                                : 'Siguiente companero',
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
@@ -579,17 +728,25 @@ class _CriterionRatingRow extends StatelessWidget {
     required this.criterion,
     required this.rating,
     required this.isLast,
+    required this.isEnabled,
     required this.onChanged,
   });
 
-  final _StudentCriterion criterion;
-  final int rating;
+  final RobleAssessmentCriterionDetail criterion;
+  final int? rating;
   final bool isLast;
+  final bool isEnabled;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final label = criterion.ratingLabels[rating] ?? 'Select a rating';
+    RobleAssessmentCriterionLevel? selectedLevel;
+    for (final level in criterion.levels) {
+      if (level.scoreValue == rating) {
+        selectedLevel = level;
+        break;
+      }
+    }
 
     return Column(
       children: [
@@ -603,11 +760,15 @@ class _CriterionRatingRow extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _CriterionDescription(criterion: criterion),
+                    _CriterionDescription(
+                      criterion: criterion,
+                      selectedLevel: selectedLevel,
+                    ),
                     const SizedBox(height: 20),
-                    _CriterionStars(
-                      rating: rating,
-                      label: label,
+                    _CriterionScaleSelector(
+                      levels: criterion.levels,
+                      selectedValue: rating,
+                      isEnabled: isEnabled,
                       onChanged: onChanged,
                     ),
                   ],
@@ -619,14 +780,18 @@ class _CriterionRatingRow extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 5,
-                    child: _CriterionDescription(criterion: criterion),
+                    child: _CriterionDescription(
+                      criterion: criterion,
+                      selectedLevel: selectedLevel,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 4,
-                    child: _CriterionStars(
-                      rating: rating,
-                      label: label,
+                    child: _CriterionScaleSelector(
+                      levels: criterion.levels,
+                      selectedValue: rating,
+                      isEnabled: isEnabled,
                       onChanged: onChanged,
                     ),
                   ),
@@ -642,31 +807,42 @@ class _CriterionRatingRow extends StatelessWidget {
 }
 
 class _CriterionDescription extends StatelessWidget {
-  const _CriterionDescription({required this.criterion});
+  const _CriterionDescription({
+    required this.criterion,
+    required this.selectedLevel,
+  });
 
-  final _StudentCriterion criterion;
+  final RobleAssessmentCriterionDetail criterion;
+  final RobleAssessmentCriterionLevel? selectedLevel;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              criterion.title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.info_outline, size: 18, color: AppTheme.textMuted),
-          ],
-        ),
-        const SizedBox(height: 8),
         Text(
-          criterion.description,
+          criterion.criterion.name,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        if (criterion.criterion.description.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            criterion.criterion.description,
+            style: const TextStyle(
+              fontSize: 15,
+              color: AppTheme.secondarySlate,
+              height: 1.35,
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Text(
+          selectedLevel == null
+              ? 'Selecciona un puntaje'
+              : '${selectedLevel!.label}: ${selectedLevel!.descriptionEs.isNotEmpty ? selectedLevel!.descriptionEs : selectedLevel!.descriptionEn}',
           style: const TextStyle(
-            fontSize: 15,
-            color: AppTheme.secondarySlate,
+            fontSize: 14,
+            color: AppTheme.textMuted,
             height: 1.35,
           ),
         ),
@@ -675,15 +851,17 @@ class _CriterionDescription extends StatelessWidget {
   }
 }
 
-class _CriterionStars extends StatelessWidget {
-  const _CriterionStars({
-    required this.rating,
-    required this.label,
+class _CriterionScaleSelector extends StatelessWidget {
+  const _CriterionScaleSelector({
+    required this.levels,
+    required this.selectedValue,
+    required this.isEnabled,
     required this.onChanged,
   });
 
-  final int rating;
-  final String label;
+  final List<RobleAssessmentCriterionLevel> levels;
+  final int? selectedValue;
+  final bool isEnabled;
   final ValueChanged<int> onChanged;
 
   @override
@@ -692,29 +870,32 @@ class _CriterionStars extends StatelessWidget {
       children: [
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 2,
-          children: List.generate(5, (index) {
-            final starValue = index + 1;
-            final isFilled = starValue <= rating;
-            return IconButton(
-              onPressed: () => onChanged(starValue),
-              visualDensity: VisualDensity.compact,
-              splashRadius: 22,
-              iconSize: 36,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-              icon: Icon(
-                isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                color: isFilled
-                    ? const Color(0xFFFFC107)
-                    : const Color(0xFFCBD2DB),
-              ),
-            );
-          }),
+          spacing: 8,
+          runSpacing: 8,
+          children: levels
+              .map(
+                (level) => ChoiceChip(
+                  label: Text('${level.scoreValue}'),
+                  selected: selectedValue == level.scoreValue,
+                  onSelected: isEnabled
+                      ? (_) => onChanged(level.scoreValue)
+                      : null,
+                  selectedColor: AppTheme.primaryGreen,
+                  labelStyle: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: selectedValue == level.scoreValue
+                        ? Colors.white
+                        : AppTheme.secondarySlate,
+                  ),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFFD2D9DE)),
+                ),
+              )
+              .toList(),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
-          label,
+          selectedValue == null ? 'Sin seleccionar' : 'Puntaje: $selectedValue',
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 14,
@@ -739,11 +920,23 @@ class _AssessmentMetaRow extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: AppTheme.textMuted),
         const SizedBox(width: 10),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 15, color: AppTheme.secondarySlate),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 15,
+              color: AppTheme.secondarySlate,
+            ),
+          ),
         ),
       ],
     );
   }
+}
+
+String _formatStudentDate(DateTime value) {
+  final day = value.day.toString().padLeft(2, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final year = value.year.toString();
+  return '$day/$month/$year';
 }
