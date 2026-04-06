@@ -33,38 +33,11 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   String _displayName = 'Student';
   bool _isLoadingCourses = true;
   bool _isLoadingAssessments = true;
+  bool _isLoadingResults = true;
   List<StudentCourseEnrollment> _courses = [];
   List<RobleStudentAssessmentAssignment> _assessments = [];
+  RobleStudentResultsSummary _resultsSummary = RobleStudentResultsSummary.empty;
   final RobleApiService _api = RobleApiService();
-
-  static const _resultsSummary = _StudentResultsSummary(
-    overallScore: 4.5,
-    assessmentCount: 3,
-    reviewCount: 12,
-    criteria: [
-      _StudentCriterionScore(label: 'Punctuality', score: 4.5),
-      _StudentCriterionScore(label: 'Contributions', score: 4.2),
-      _StudentCriterionScore(label: 'Commitment', score: 4.7),
-      _StudentCriterionScore(label: 'Attitude', score: 4.6),
-    ],
-    history: [
-      _StudentAssessmentHistoryItem(
-        title: 'Sprint 1 Review',
-        date: 'Feb 15, 2026',
-        score: 4.5,
-      ),
-      _StudentAssessmentHistoryItem(
-        title: 'Lab Evaluation',
-        date: 'Feb 8, 2026',
-        score: 4.3,
-      ),
-      _StudentAssessmentHistoryItem(
-        title: 'Project Milestone',
-        date: 'Jan 25, 2026',
-        score: 4.6,
-      ),
-    ],
-  );
 
   @override
   void initState() {
@@ -74,7 +47,11 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   }
 
   Future<void> _refreshStudentData() async {
-    await Future.wait<void>([_fetchCourses(), _fetchAssessments()]);
+    await Future.wait<void>([
+      _fetchCourses(),
+      _fetchAssessments(),
+      _fetchResults(),
+    ]);
   }
 
   Future<void> _fetchCourses() async {
@@ -124,6 +101,36 @@ class _StudentHomeViewState extends State<StudentHomeView> {
             formatUserErrorMessage(
               e,
               fallback: 'No se pudieron cargar las evaluaciones.',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _fetchResults() async {
+    setState(() => _isLoadingResults = true);
+    try {
+      final user = await Get.find<AuthService>().getStoredUser();
+      final email = user?.email ?? '';
+      final fetched = await _api.getStudentResults(email);
+      if (!mounted) return;
+      setState(() {
+        _resultsSummary = fetched;
+        _isLoadingResults = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _resultsSummary = RobleStudentResultsSummary.empty;
+        _isLoadingResults = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            formatUserErrorMessage(
+              e,
+              fallback: 'No se pudieron cargar tus resultados.',
             ),
           ),
         ),
@@ -189,7 +196,10 @@ class _StudentHomeViewState extends State<StudentHomeView> {
             onRefresh: _fetchAssessments,
             onSubmitAssessment: _submitAssessment,
           ),
-          const _StudentResultsView(summary: _resultsSummary),
+          _StudentResultsView(
+            summary: _resultsSummary,
+            isLoading: _isLoadingResults,
+          ),
           _StudentProfile(
             emailNotifications: _emailNotifications,
             assessmentReminders: _assessmentReminders,
@@ -236,39 +246,4 @@ class _StudentHomeViewState extends State<StudentHomeView> {
       ),
     );
   }
-}
-
-class _StudentResultsSummary {
-  const _StudentResultsSummary({
-    required this.overallScore,
-    required this.assessmentCount,
-    required this.reviewCount,
-    required this.criteria,
-    required this.history,
-  });
-
-  final double overallScore;
-  final int assessmentCount;
-  final int reviewCount;
-  final List<_StudentCriterionScore> criteria;
-  final List<_StudentAssessmentHistoryItem> history;
-}
-
-class _StudentCriterionScore {
-  const _StudentCriterionScore({required this.label, required this.score});
-
-  final String label;
-  final double score;
-}
-
-class _StudentAssessmentHistoryItem {
-  const _StudentAssessmentHistoryItem({
-    required this.title,
-    required this.date,
-    required this.score,
-  });
-
-  final String title;
-  final String date;
-  final double score;
 }

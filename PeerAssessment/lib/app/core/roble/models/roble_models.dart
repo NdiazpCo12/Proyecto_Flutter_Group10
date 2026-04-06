@@ -891,6 +891,64 @@ class RobleStudentAssessmentAssignment {
   }
 }
 
+class RobleStudentResultCriterionScore {
+  const RobleStudentResultCriterionScore({
+    required this.label,
+    required this.score,
+    required this.responseCount,
+    required this.displayOrder,
+  });
+
+  final String label;
+  final double score;
+  final int responseCount;
+  final int displayOrder;
+}
+
+class RobleStudentAssessmentHistoryItem {
+  const RobleStudentAssessmentHistoryItem({
+    required this.assessmentId,
+    required this.title,
+    required this.date,
+    required this.score,
+    required this.reviewCount,
+    required this.criteria,
+  });
+
+  final String assessmentId;
+  final String title;
+  final DateTime date;
+  final double score;
+  final int reviewCount;
+  final List<RobleStudentResultCriterionScore> criteria;
+}
+
+class RobleStudentResultsSummary {
+  const RobleStudentResultsSummary({
+    required this.overallScore,
+    required this.assessmentCount,
+    required this.reviewCount,
+    required this.criteria,
+    required this.history,
+  });
+
+  static const empty = RobleStudentResultsSummary(
+    overallScore: 0,
+    assessmentCount: 0,
+    reviewCount: 0,
+    criteria: [],
+    history: [],
+  );
+
+  final double overallScore;
+  final int assessmentCount;
+  final int reviewCount;
+  final List<RobleStudentResultCriterionScore> criteria;
+  final List<RobleStudentAssessmentHistoryItem> history;
+
+  bool get hasResults => reviewCount > 0 && history.isNotEmpty;
+}
+
 DateTime? _parseOptionalDate(dynamic value) {
   final text = value?.toString().trim() ?? '';
   if (text.isEmpty) {
