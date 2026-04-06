@@ -46,7 +46,6 @@ class _TeacherEvaluations extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: () async {
                       await Get.to(() => const TeacherEvaluationBuilderView());
-                      await controller.fetchAssessments();
                     },
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,

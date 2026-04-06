@@ -399,6 +399,32 @@ class RobleAssessment {
     'created_by_email': createdByEmail,
     'created_at': createdAt.toIso8601String(),
   };
+
+  RobleAssessment copyWith({
+    String? id,
+    String? courseId,
+    String? categoryId,
+    String? name,
+    String? visibility,
+    String? status,
+    DateTime? startsAt,
+    DateTime? endsAt,
+    String? createdByEmail,
+    DateTime? createdAt,
+  }) {
+    return RobleAssessment(
+      id: id ?? this.id,
+      courseId: courseId ?? this.courseId,
+      categoryId: categoryId ?? this.categoryId,
+      name: name ?? this.name,
+      visibility: visibility ?? this.visibility,
+      status: status ?? this.status,
+      startsAt: startsAt ?? this.startsAt,
+      endsAt: endsAt ?? this.endsAt,
+      createdByEmail: createdByEmail ?? this.createdByEmail,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 class RobleAssessmentCriterion {

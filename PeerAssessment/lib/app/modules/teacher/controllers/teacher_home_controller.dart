@@ -21,6 +21,8 @@ class TeacherHomeController extends GetxController {
   final expandedAnalyticsStudentId = RxnString();
 
   final RobleApiService _api = RobleApiService();
+  Future<void>? _fetchCoursesTask;
+  Future<void>? _fetchAssessmentsTask;
 
   @override
   void onInit() {
@@ -60,13 +62,27 @@ class TeacherHomeController extends GetxController {
   }
 
   Future<void> fetchCourses() async {
+    if (_fetchCoursesTask != null) {
+      return _fetchCoursesTask!;
+    }
+
+    final future = _fetchCoursesInternal();
+    _fetchCoursesTask = future;
+    try {
+      await future;
+    } finally {
+      _fetchCoursesTask = null;
+    }
+  }
+
+  Future<void> _fetchCoursesInternal() async {
     isLoadingCourses.value = true;
     try {
       final user = await Get.find<AuthService>().getStoredUser();
       final email = user?.email ?? 'profesor@uninorte.edu.co';
       final fetched = await _api.getCourses(email);
       courses.value = fetched;
-      await fetchAssessments(teacherEmail: email);
+      fetchAssessments(teacherEmail: email);
     } catch (e) {
       courses.clear();
       assessments.clear();
@@ -87,6 +103,20 @@ class TeacherHomeController extends GetxController {
   }
 
   Future<void> fetchAssessments({String? teacherEmail}) async {
+    if (_fetchAssessmentsTask != null) {
+      return _fetchAssessmentsTask!;
+    }
+
+    final future = _fetchAssessmentsInternal(teacherEmail: teacherEmail);
+    _fetchAssessmentsTask = future;
+    try {
+      await future;
+    } finally {
+      _fetchAssessmentsTask = null;
+    }
+  }
+
+  Future<void> _fetchAssessmentsInternal({String? teacherEmail}) async {
     isLoadingAssessments.value = true;
     try {
       final email =
