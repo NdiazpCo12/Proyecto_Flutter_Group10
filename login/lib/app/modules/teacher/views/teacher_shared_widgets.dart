@@ -119,7 +119,7 @@ class _CourseCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        '${course.pendingEvaluations} active assessments',
+                        '${course.pendingEvaluations} active ${course.pendingEvaluations == 1 ? 'assessment' : 'assessments'}',
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -521,12 +521,14 @@ class _ChartBar {
 
 class _BreakdownStudent {
   const _BreakdownStudent({
+    required this.id,
     required this.initials,
     required this.name,
     required this.average,
     this.details,
   });
 
+  final String id;
   final String initials;
   final String name;
   final double average;

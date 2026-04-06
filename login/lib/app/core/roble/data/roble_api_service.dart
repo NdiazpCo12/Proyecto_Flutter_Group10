@@ -192,7 +192,12 @@ class RobleApiService {
         final enriched = <RobleCourseHome>[];
         for (final course in mapped) {
           final stats = await _getCourseStats(course.id);
-          enriched.add(course.copyWith(studentCount: stats.studentCount));
+          enriched.add(
+            course.copyWith(
+              studentCount: stats.studentCount,
+              pendingEvaluations: stats.activeAssessmentCount,
+            ),
+          );
         }
 
         print('Cursos obtenidos despues de filtro: ${enriched.length}');
@@ -642,6 +647,150 @@ class RobleApiService {
     );
   }
 
+  Future<RobleTeacherAssessmentAnalytics?> getTeacherAssessmentAnalytics(
+    String assessmentId,
+  ) async {
+    final trimmedId = assessmentId.trim();
+    if (trimmedId.isEmpty) {
+      return null;
+    }
+
+    final detail = await getAssessmentDetail(trimmedId);
+    if (detail == null) {
+      return null;
+    }
+
+    final scoreRows = await read(
+      'assessment_scores',
+      filters: {'assessment_id': trimmedId},
+    );
+    final scores = scoreRows
+        .map(RobleAssessmentScore.fromJson)
+        .where((score) => score.scoreValue > 0)
+        .toList();
+
+    final criteriaAverages = <RobleTeacherAssessmentCriterionAverage>[];
+    for (final criterionDetail in detail.criteria) {
+      final criterionId = criterionDetail.criterion.id?.trim() ?? '';
+      final criterionScores = scores
+          .where((score) => score.criterionId == criterionId)
+          .map((score) => score.scoreValue)
+          .toList();
+
+      criteriaAverages.add(
+        RobleTeacherAssessmentCriterionAverage(
+          criterionId: criterionId,
+          label: criterionDetail.criterion.name,
+          averageScore: _averageFromInts(criterionScores),
+          responseCount: criterionScores.length,
+        ),
+      );
+    }
+
+    final groupRows = await read(
+      'course_groups',
+      filters: {'category_id': detail.overview.assessment.categoryId},
+    );
+    final groups =
+        groupRows
+            .map(RobleCourseGroupRecord.fromJson)
+            .where(
+              (group) =>
+                  group.id.isNotEmpty &&
+                  group.courseId == detail.overview.course.id,
+            )
+            .toList()
+          ..sort((a, b) => _compareNaturalLabels(a.groupName, b.groupName));
+
+    final studentCache = <String, RobleStudentRecord?>{};
+    final groupAnalytics = <RobleTeacherAssessmentGroupAnalytics>[];
+
+    for (final group in groups) {
+      final membershipRows = await read(
+        'group_members',
+        filters: {'group_id': group.id},
+      );
+      final memberships = membershipRows
+          .map(RobleGroupMemberRecord.fromJson)
+          .where((membership) => membership.studentId.isNotEmpty)
+          .toList();
+
+      final seenStudentIds = <String>{};
+      final students = <RobleTeacherAssessmentStudentAnalytics>[];
+
+      for (final membership in memberships) {
+        if (!seenStudentIds.add(membership.studentId)) {
+          continue;
+        }
+
+        final student = await _getStudentRecordById(
+          membership.studentId,
+          studentCache,
+        );
+        if (student == null) {
+          continue;
+        }
+
+        final studentScores = scores
+            .where(
+              (score) =>
+                  score.groupId == group.id &&
+                  score.revieweeStudentId == student.id,
+            )
+            .toList();
+
+        final criteriaScores = <String, double>{};
+        for (final criterionDetail in detail.criteria) {
+          final criterionId = criterionDetail.criterion.id?.trim() ?? '';
+          final criterionScores = studentScores
+              .where((score) => score.criterionId == criterionId)
+              .map((score) => score.scoreValue)
+              .toList();
+          criteriaScores[criterionDetail.criterion.name] = _averageFromInts(
+            criterionScores,
+          );
+        }
+
+        final fullName =
+            '${student.firstName.trim()} ${student.lastName.trim()}'.trim();
+        students.add(
+          RobleTeacherAssessmentStudentAnalytics(
+            studentId: student.id,
+            name: fullName.isEmpty ? student.username : fullName,
+            email: student.email,
+            averageScore: _averageFromInts(
+              studentScores.map((score) => score.scoreValue),
+            ),
+            criteriaScores: criteriaScores,
+          ),
+        );
+      }
+
+      students.sort((a, b) => a.name.compareTo(b.name));
+      final groupScores = scores
+          .where((score) => score.groupId == group.id)
+          .map((score) => score.scoreValue);
+
+      groupAnalytics.add(
+        RobleTeacherAssessmentGroupAnalytics(
+          groupId: group.id,
+          groupName: group.groupName,
+          averageScore: _averageFromInts(groupScores),
+          studentCount: students.length,
+          students: students,
+        ),
+      );
+    }
+
+    return RobleTeacherAssessmentAnalytics(
+      detail: detail,
+      engagementRate: detail.overview.completionProgress.clamp(0.0, 1.0),
+      averageScore: _averageFromInts(scores.map((score) => score.scoreValue)),
+      criteriaAverages: criteriaAverages,
+      groups: groupAnalytics,
+    );
+  }
+
   Future<RobleCourseManagementData> getCourseManagementData(
     RobleCourseHome course,
   ) async {
@@ -665,7 +814,7 @@ class RobleApiService {
             .map(RobleCourseGroupRecord.fromJson)
             .where((group) => group.id.isNotEmpty)
             .toList()
-          ..sort((a, b) => a.groupName.compareTo(b.groupName));
+          ..sort((a, b) => _compareNaturalLabels(a.groupName, b.groupName));
 
     final categoryById = {
       for (final category in categories) category.id: category,
@@ -718,7 +867,7 @@ class RobleApiService {
         return categoryCompare;
       }
 
-      final groupCompare = a.groupName.compareTo(b.groupName);
+      final groupCompare = _compareNaturalLabels(a.groupName, b.groupName);
       if (groupCompare != 0) {
         return groupCompare;
       }
@@ -1135,17 +1284,13 @@ class RobleApiService {
 
   Future<_CourseStats> _getCourseStats(String courseId) async {
     if (courseId.isEmpty) {
-      return const _CourseStats(studentCount: 0);
+      return const _CourseStats(studentCount: 0, activeAssessmentCount: 0);
     }
 
     final groupRows = await read(
       'course_groups',
       filters: {'course_id': courseId},
     );
-    if (groupRows.isEmpty) {
-      return const _CourseStats(studentCount: 0);
-    }
-
     final groups = groupRows.map(RobleCourseGroupRecord.fromJson).toList();
     final studentIds = <String>{};
 
@@ -1163,7 +1308,19 @@ class RobleApiService {
       }
     }
 
-    return _CourseStats(studentCount: studentIds.length);
+    final assessmentRows = await read(
+      'assessments',
+      filters: {'course_id': courseId},
+    );
+    final activeAssessmentCount = assessmentRows
+        .map(RobleAssessment.fromJson)
+        .where(_isCourseAssessmentActive)
+        .length;
+
+    return _CourseStats(
+      studentCount: studentIds.length,
+      activeAssessmentCount: activeAssessmentCount,
+    );
   }
 
   /// Inserts multiple rows into [table] sequentially, in chunks of [chunkSize].
@@ -1204,10 +1361,74 @@ class RobleApiService {
       }
     }
   }
+
+  bool _isCourseAssessmentActive(RobleAssessment assessment) {
+    final normalizedStatus = assessment.status.trim().toLowerCase();
+    final now = DateTime.now();
+
+    if (normalizedStatus == 'closed' || normalizedStatus == 'draft') {
+      return false;
+    }
+    if (now.isBefore(assessment.startsAt)) {
+      return false;
+    }
+    if (now.isAfter(assessment.endsAt)) {
+      return false;
+    }
+    return true;
+  }
+
+  int _compareNaturalLabels(String a, String b) {
+    final aParts = RegExp(
+      r'\d+|\D+',
+    ).allMatches(a).map((match) => match.group(0) ?? '').toList();
+    final bParts = RegExp(
+      r'\d+|\D+',
+    ).allMatches(b).map((match) => match.group(0) ?? '').toList();
+
+    final minLength = aParts.length < bParts.length
+        ? aParts.length
+        : bParts.length;
+
+    for (var index = 0; index < minLength; index++) {
+      final aPart = aParts[index];
+      final bPart = bParts[index];
+      final aNumber = int.tryParse(aPart);
+      final bNumber = int.tryParse(bPart);
+
+      if (aNumber != null && bNumber != null) {
+        final compare = aNumber.compareTo(bNumber);
+        if (compare != 0) {
+          return compare;
+        }
+        continue;
+      }
+
+      final compare = aPart.toLowerCase().compareTo(bPart.toLowerCase());
+      if (compare != 0) {
+        return compare;
+      }
+    }
+
+    return aParts.length.compareTo(bParts.length);
+  }
+
+  double _averageFromInts(Iterable<int> values) {
+    final list = values.toList();
+    if (list.isEmpty) {
+      return 0;
+    }
+    final total = list.fold<int>(0, (sum, value) => sum + value);
+    return total / list.length;
+  }
 }
 
 class _CourseStats {
-  const _CourseStats({required this.studentCount});
+  const _CourseStats({
+    required this.studentCount,
+    required this.activeAssessmentCount,
+  });
 
   final int studentCount;
+  final int activeAssessmentCount;
 }

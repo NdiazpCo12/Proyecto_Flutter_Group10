@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import '../../../core/errors/error_message_formatter.dart';
 import '../../../core/roble/roble.dart';
 import '../../login/services/auth_service.dart';
-import '../data/teacher_mock_data.dart';
-import '../models/teacher_models.dart';
 
 class TeacherHomeController extends GetxController {
   final selectedTab = 0.obs;
@@ -14,10 +12,13 @@ class TeacherHomeController extends GetxController {
 
   final isLoadingCourses = true.obs;
   final isLoadingAssessments = true.obs;
+  final isLoadingAnalytics = false.obs;
   final courses = <RobleCourseHome>[].obs;
   final assessments = <RobleAssessmentOverview>[].obs;
-
-  List<TeacherGroup> get groups => TeacherMockData.groups;
+  final selectedAnalyticsAssessmentId = RxnString();
+  final assessmentAnalytics = Rxn<RobleTeacherAssessmentAnalytics>();
+  final selectedAnalyticsGroupId = RxnString();
+  final expandedAnalyticsStudentId = RxnString();
 
   final RobleApiService _api = RobleApiService();
 
@@ -49,10 +50,6 @@ class TeacherHomeController extends GetxController {
     );
   }
 
-  List<TeacherGroup> groupsForCourse(String courseId) {
-    return groups.where((group) => group.courseId == courseId).toList();
-  }
-
   Future<void> _loadCurrentUser() async {
     final user = await Get.find<AuthService>().getStoredUser();
     final name = user?.name.trim();
@@ -73,6 +70,10 @@ class TeacherHomeController extends GetxController {
     } catch (e) {
       courses.clear();
       assessments.clear();
+      assessmentAnalytics.value = null;
+      selectedAnalyticsAssessmentId.value = null;
+      selectedAnalyticsGroupId.value = null;
+      expandedAnalyticsStudentId.value = null;
       Get.snackbar(
         'Error',
         formatUserErrorMessage(
@@ -93,9 +94,36 @@ class TeacherHomeController extends GetxController {
           (await Get.find<AuthService>().getStoredUser())?.email ??
           'profesor@uninorte.edu.co';
       final fetched = await _api.getTeacherAssessments(email);
+      final previousSelectedAssessmentId = selectedAnalyticsAssessmentId.value;
       assessments.value = fetched;
+
+      if (previousSelectedAssessmentId == null ||
+          previousSelectedAssessmentId.trim().isEmpty) {
+        assessmentAnalytics.value = null;
+        selectedAnalyticsGroupId.value = null;
+        expandedAnalyticsStudentId.value = null;
+        return;
+      }
+
+      final stillExists = fetched.any(
+        (assessment) =>
+            assessment.assessment.id == previousSelectedAssessmentId,
+      );
+      if (!stillExists) {
+        selectedAnalyticsAssessmentId.value = null;
+        assessmentAnalytics.value = null;
+        selectedAnalyticsGroupId.value = null;
+        expandedAnalyticsStudentId.value = null;
+        return;
+      }
+
+      await selectAnalyticsAssessment(previousSelectedAssessmentId);
     } catch (e) {
       assessments.clear();
+      assessmentAnalytics.value = null;
+      selectedAnalyticsAssessmentId.value = null;
+      selectedAnalyticsGroupId.value = null;
+      expandedAnalyticsStudentId.value = null;
       Get.snackbar(
         'Error',
         formatUserErrorMessage(
@@ -108,6 +136,76 @@ class TeacherHomeController extends GetxController {
     } finally {
       isLoadingAssessments.value = false;
     }
+  }
+
+  RobleAssessmentOverview? get selectedAnalyticsAssessmentOverview {
+    final selectedId = selectedAnalyticsAssessmentId.value?.trim() ?? '';
+    if (selectedId.isEmpty) {
+      return null;
+    }
+    for (final assessment in assessments) {
+      if (assessment.assessment.id == selectedId) {
+        return assessment;
+      }
+    }
+    return null;
+  }
+
+  RobleTeacherAssessmentGroupAnalytics? get selectedAnalyticsGroup {
+    return assessmentAnalytics.value?.groupById(selectedAnalyticsGroupId.value);
+  }
+
+  Future<void> selectAnalyticsAssessment(String? assessmentId) async {
+    final trimmedId = assessmentId?.trim() ?? '';
+    expandedAnalyticsStudentId.value = null;
+
+    if (trimmedId.isEmpty) {
+      selectedAnalyticsAssessmentId.value = null;
+      assessmentAnalytics.value = null;
+      selectedAnalyticsGroupId.value = null;
+      return;
+    }
+
+    selectedAnalyticsAssessmentId.value = trimmedId;
+    isLoadingAnalytics.value = true;
+
+    try {
+      final analytics = await _api.getTeacherAssessmentAnalytics(trimmedId);
+      assessmentAnalytics.value = analytics;
+      selectedAnalyticsGroupId.value = analytics?.groups.isNotEmpty == true
+          ? analytics!.groupById(selectedAnalyticsGroupId.value)?.groupId ??
+                analytics.groups.first.groupId
+          : null;
+    } catch (e) {
+      assessmentAnalytics.value = null;
+      selectedAnalyticsGroupId.value = null;
+      Get.snackbar(
+        'Error',
+        formatUserErrorMessage(
+          e,
+          fallback: 'No se pudieron cargar las estadisticas del assessment.',
+        ),
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    } finally {
+      isLoadingAnalytics.value = false;
+    }
+  }
+
+  void selectAnalyticsGroup(String? groupId) {
+    final trimmedId = groupId?.trim() ?? '';
+    selectedAnalyticsGroupId.value = trimmedId.isEmpty ? null : trimmedId;
+    expandedAnalyticsStudentId.value = null;
+  }
+
+  void toggleAnalyticsStudent(String studentId) {
+    final trimmedId = studentId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    expandedAnalyticsStudentId.value =
+        expandedAnalyticsStudentId.value == trimmedId ? null : trimmedId;
   }
 
   Future<List<RobleGroupCategoryRecord>> loadCourseCategories(

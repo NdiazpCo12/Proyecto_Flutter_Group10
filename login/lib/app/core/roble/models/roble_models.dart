@@ -549,6 +549,99 @@ class RobleAssessmentDetailData {
   final List<RobleAssessmentCriterionDetail> criteria;
 }
 
+class RobleTeacherAssessmentCriterionAverage {
+  const RobleTeacherAssessmentCriterionAverage({
+    required this.criterionId,
+    required this.label,
+    required this.averageScore,
+    required this.responseCount,
+  });
+
+  final String criterionId;
+  final String label;
+  final double averageScore;
+  final int responseCount;
+}
+
+class RobleTeacherAssessmentStudentAnalytics {
+  const RobleTeacherAssessmentStudentAnalytics({
+    required this.studentId,
+    required this.name,
+    required this.email,
+    required this.averageScore,
+    required this.criteriaScores,
+  });
+
+  final String studentId;
+  final String name;
+  final String email;
+  final double averageScore;
+  final Map<String, double> criteriaScores;
+
+  String get initials {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) {
+      return '?';
+    }
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
+  }
+}
+
+class RobleTeacherAssessmentGroupAnalytics {
+  const RobleTeacherAssessmentGroupAnalytics({
+    required this.groupId,
+    required this.groupName,
+    required this.averageScore,
+    required this.studentCount,
+    required this.students,
+  });
+
+  final String groupId;
+  final String groupName;
+  final double averageScore;
+  final int studentCount;
+  final List<RobleTeacherAssessmentStudentAnalytics> students;
+}
+
+class RobleTeacherAssessmentAnalytics {
+  const RobleTeacherAssessmentAnalytics({
+    required this.detail,
+    required this.engagementRate,
+    required this.averageScore,
+    required this.criteriaAverages,
+    required this.groups,
+  });
+
+  final RobleAssessmentDetailData detail;
+  final double engagementRate;
+  final double averageScore;
+  final List<RobleTeacherAssessmentCriterionAverage> criteriaAverages;
+  final List<RobleTeacherAssessmentGroupAnalytics> groups;
+
+  RobleTeacherAssessmentGroupAnalytics? groupById(String? groupId) {
+    final trimmedId = groupId?.trim() ?? '';
+    if (trimmedId.isNotEmpty) {
+      for (final group in groups) {
+        if (group.groupId == trimmedId) {
+          return group;
+        }
+      }
+    }
+    if (groups.isEmpty) {
+      return null;
+    }
+    return groups.first;
+  }
+}
+
 class RobleAssessmentSubmission {
   RobleAssessmentSubmission({
     this.id,
