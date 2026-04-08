@@ -18,7 +18,15 @@ part 'student_results_view.dart';
 part 'student_profile_view.dart';
 
 class StudentHomeView extends StatefulWidget {
-  const StudentHomeView({super.key});
+  const StudentHomeView({
+    super.key,
+    RobleApiService? apiService,
+    AuthService? authService,
+  }) : _apiService = apiService,
+       _authService = authService;
+
+  final RobleApiService? _apiService;
+  final AuthService? _authService;
 
   @override
   State<StudentHomeView> createState() => _StudentHomeViewState();
@@ -37,7 +45,10 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   List<StudentCourseEnrollment> _courses = [];
   List<RobleStudentAssessmentAssignment> _assessments = [];
   RobleStudentResultsSummary _resultsSummary = RobleStudentResultsSummary.empty;
-  final RobleApiService _api = RobleApiService();
+  late final RobleApiService _api =
+      widget._apiService ?? RobleApiService();
+
+  AuthService get _authService => widget._authService ?? Get.find<AuthService>();
 
   @override
   void initState() {
@@ -57,7 +68,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   Future<void> _fetchCourses() async {
     setState(() => _isLoadingCourses = true);
     try {
-      final user = await Get.find<AuthService>().getStoredUser();
+      final user = await _authService.getStoredUser();
       final email = user?.email ?? '';
       final fetched = await _api.getStudentEnrollments(email);
       if (!mounted) return;
@@ -84,7 +95,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   Future<void> _fetchAssessments() async {
     setState(() => _isLoadingAssessments = true);
     try {
-      final user = await Get.find<AuthService>().getStoredUser();
+      final user = await _authService.getStoredUser();
       final email = user?.email ?? '';
       final fetched = await _api.getStudentAssessments(email);
       if (!mounted) return;
@@ -111,7 +122,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   Future<void> _fetchResults() async {
     setState(() => _isLoadingResults = true);
     try {
-      final user = await Get.find<AuthService>().getStoredUser();
+      final user = await _authService.getStoredUser();
       final email = user?.email ?? '';
       final fetched = await _api.getStudentResults(email);
       if (!mounted) return;
@@ -150,7 +161,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
   }
 
   Future<void> _loadCurrentUser() async {
-    final user = await Get.find<AuthService>().getStoredUser();
+    final user = await _authService.getStoredUser();
     final name = user?.name.trim();
 
     if (!mounted || name == null || name.isEmpty) {

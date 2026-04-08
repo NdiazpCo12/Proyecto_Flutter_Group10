@@ -9,10 +9,17 @@ import '../models/auth_user.dart';
 import '../services/auth_service.dart';
 
 class LoginController extends GetxController {
-  LoginController({required AuthService authService})
-    : _authService = authService;
+  LoginController({
+    required AuthService authService,
+    VoidCallback? onOpenTeacherHome,
+    VoidCallback? onOpenStudentHome,
+  }) : _authService = authService,
+       _onOpenTeacherHome = onOpenTeacherHome,
+       _onOpenStudentHome = onOpenStudentHome;
 
   final AuthService _authService;
+  final VoidCallback? _onOpenTeacherHome;
+  final VoidCallback? _onOpenStudentHome;
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController(
@@ -78,11 +85,19 @@ class LoginController extends GetxController {
     final normalizedRole = user.role.trim().toLowerCase();
 
     if (_isTeacherRole(normalizedRole)) {
+      if (_onOpenTeacherHome != null) {
+        _onOpenTeacherHome!();
+        return;
+      }
       Get.offAll(() => const TeacherHomeView(), binding: TeacherHomeBinding());
       return;
     }
 
     if (_isStudentRole(normalizedRole)) {
+      if (_onOpenStudentHome != null) {
+        _onOpenStudentHome!();
+        return;
+      }
       Get.offAll(() => const StudentHomeView());
       return;
     }

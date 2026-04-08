@@ -6,6 +6,12 @@ import '../../../core/roble/roble.dart';
 import '../../login/services/auth_service.dart';
 
 class TeacherHomeController extends GetxController {
+  TeacherHomeController({
+    RobleApiService? apiService,
+    AuthService? authService,
+  }) : _api = apiService ?? RobleApiService(),
+       _authService = authService;
+
   final selectedTab = 0.obs;
   final isSyncing = false.obs;
   final displayName = 'Teacher'.obs;
@@ -20,9 +26,12 @@ class TeacherHomeController extends GetxController {
   final selectedAnalyticsGroupId = RxnString();
   final expandedAnalyticsStudentId = RxnString();
 
-  final RobleApiService _api = RobleApiService();
+  final RobleApiService _api;
+  final AuthService? _authService;
   Future<void>? _fetchCoursesTask;
   Future<void>? _fetchAssessmentsTask;
+
+  AuthService get _resolvedAuthService => _authService ?? Get.find<AuthService>();
 
   @override
   void onInit() {
@@ -53,7 +62,7 @@ class TeacherHomeController extends GetxController {
   }
 
   Future<void> _loadCurrentUser() async {
-    final user = await Get.find<AuthService>().getStoredUser();
+    final user = await _resolvedAuthService.getStoredUser();
     final name = user?.name.trim();
 
     if (name != null && name.isNotEmpty) {
@@ -78,7 +87,7 @@ class TeacherHomeController extends GetxController {
   Future<void> _fetchCoursesInternal() async {
     isLoadingCourses.value = true;
     try {
-      final user = await Get.find<AuthService>().getStoredUser();
+      final user = await _resolvedAuthService.getStoredUser();
       final email = user?.email ?? 'profesor@uninorte.edu.co';
       final fetched = await _api.getCourses(email);
       courses.value = fetched;
@@ -121,7 +130,7 @@ class TeacherHomeController extends GetxController {
     try {
       final email =
           teacherEmail ??
-          (await Get.find<AuthService>().getStoredUser())?.email ??
+          (await _resolvedAuthService.getStoredUser())?.email ??
           'profesor@uninorte.edu.co';
       final fetched = await _api.getTeacherAssessments(email);
       final previousSelectedAssessmentId = selectedAnalyticsAssessmentId.value;
@@ -251,7 +260,7 @@ class TeacherHomeController extends GetxController {
     required bool publicResults,
     required int durationDays,
   }) async {
-    final user = await Get.find<AuthService>().getStoredUser();
+    final user = await _resolvedAuthService.getStoredUser();
     final teacherEmail = user?.email ?? 'profesor@uninorte.edu.co';
     final now = DateTime.now();
     final startsAt = now;
