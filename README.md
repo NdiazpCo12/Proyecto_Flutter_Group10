@@ -22,7 +22,7 @@ El alcance de la aplicación es amplio, abarcando todas las necesidades de gesti
 
 - Demo de gestión académica:  [https://www.youtube.com/shorts/4aYY2MG8rQU]
 - Demo de evaluación y reportes. [https://www.youtube.com/watch?v=hXhlfb54fOk]
-- Pruebas de widget: [Link]
+- Pruebas de widget: [https://www.youtube.com/watch?v=VDf7dwGttYk]
 - Pruebas de integración: flujo completo (profesor/estudiante) [https://www.youtube.com/watch?v=pw5L_P0wFRI]
 - Implementación de caché: [https://www.youtube.com/watch?v=zAHymNOYWyk]
 - Revisión del código: explicación del enfoque de arquitectura limpia [https://www.youtube.com/watch?v=yEbHukKoXSY]
