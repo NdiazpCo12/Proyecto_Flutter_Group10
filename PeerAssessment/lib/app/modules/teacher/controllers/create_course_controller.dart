@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:csv/csv.dart';
@@ -197,7 +198,10 @@ class CreateCourseController extends GetxController {
           : 'Curso importado desde CSV',
       teacherEmail: teacherEmail,
     );
-    print('=== Enviando payload a courses ===\n${courseObj.toJson()}');
+    log(
+      '=== Enviando payload a courses ===\n${courseObj.toJson()}',
+      name: 'CreateCourseController',
+    );
 
     return _api.insert('courses', courseObj.toJson());
   }
@@ -256,8 +260,9 @@ class CreateCourseController extends GetxController {
       name: categoryName,
       courseId: courseId,
     );
-    print(
+    log(
       '=== Enviando payload a group_categories ===\n${categoryObj.toJson()}',
+      name: 'CreateCourseController',
     );
 
     final categoryId = await _api.insert(
@@ -345,7 +350,10 @@ class CreateCourseController extends GetxController {
         courseId: courseId,
       );
 
-      print('=== Enviando payload a course_groups ===\n${groupObj.toJson()}');
+      log(
+        '=== Enviando payload a course_groups ===\n${groupObj.toJson()}',
+        name: 'CreateCourseController',
+      );
       final id = await _api.insert('course_groups', groupObj.toJson());
 
       seen[row.groupCode] = id;
@@ -437,7 +445,10 @@ class CreateCourseController extends GetxController {
             : 'correo@invalido.com',
       );
 
-      print('=== Enviando payload a students ===\n${studentObj.toJson()}');
+      log(
+        '=== Enviando payload a students ===\n${studentObj.toJson()}',
+        name: 'CreateCourseController',
+      );
       final id = await _api.insert('students', studentObj.toJson());
 
       seen[normalizedEmail] = id;
@@ -466,7 +477,10 @@ class CreateCourseController extends GetxController {
 
       final originalDate = row.enrollmentDate;
       final formattedDate = _formatSpanishDate(originalDate);
-      print('Fecha convertida: $originalDate -> $formattedDate');
+      log(
+        'Fecha convertida: $originalDate -> $formattedDate',
+        name: 'CreateCourseController',
+      );
 
       final memberObj = RobleGroupMember(
         studentId: studentId,
@@ -474,7 +488,10 @@ class CreateCourseController extends GetxController {
         enrollmentDate: formattedDate,
       );
 
-      print('=== Enviando payload a group_members ===\n${memberObj.toJson()}');
+      log(
+        '=== Enviando payload a group_members ===\n${memberObj.toJson()}',
+        name: 'CreateCourseController',
+      );
       await _api.insert('group_members', memberObj.toJson());
 
       done++;

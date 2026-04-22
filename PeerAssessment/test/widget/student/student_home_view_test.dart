@@ -66,7 +66,10 @@ void main() {
 
       await tester.tap(find.text('Results'));
       await tester.pumpAndSettle();
-      expect(find.text('No public results available yet.'), findsOneWidget);
+      expect(
+        find.text('No public results available yet for this course.'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();

@@ -86,7 +86,7 @@ class LoginController extends GetxController {
 
     if (_isTeacherRole(normalizedRole)) {
       if (_onOpenTeacherHome != null) {
-        _onOpenTeacherHome!();
+        _onOpenTeacherHome();
         return;
       }
       Get.offAll(() => const TeacherHomeView(), binding: TeacherHomeBinding());
@@ -95,7 +95,7 @@ class LoginController extends GetxController {
 
     if (_isStudentRole(normalizedRole)) {
       if (_onOpenStudentHome != null) {
-        _onOpenStudentHome!();
+        _onOpenStudentHome();
         return;
       }
       Get.offAll(() => const StudentHomeView());

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
 
 import '../../storage/session_storage_service.dart';
@@ -143,7 +145,10 @@ class RobleApiService {
           final id = firstRecord['_id'] ?? firstRecord['id'];
 
           if (id != null) {
-            print('ID capturado con exito: $id');
+            log(
+              'ID capturado con exito: $id',
+              name: 'RobleApiService',
+            );
             _invalidateReadCache();
             return id.toString();
           }
@@ -1906,8 +1911,9 @@ class RobleApiService {
       );
       return assessment.copyWith(status: 'closed');
     } catch (e) {
-      print(
+      log(
         'No se pudo sincronizar el cierre del assessment $assessmentId: $e',
+        name: 'RobleApiService',
       );
       return assessment;
     }

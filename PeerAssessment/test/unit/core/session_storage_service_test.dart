@@ -35,11 +35,10 @@ void main() {
 
       await service.saveUser(user);
 
-      expect(await service.getUser()?.then((value) => value?.id), 'user-1');
-      expect(
-        await service.getUser()?.then((value) => value?.email),
-        'student@uninorte.edu.co',
-      );
+      final storedUser = await service.getUser();
+
+      expect(storedUser?.id, 'user-1');
+      expect(storedUser?.email, 'student@uninorte.edu.co');
     });
 
     test('returns null when no user is stored', () async {

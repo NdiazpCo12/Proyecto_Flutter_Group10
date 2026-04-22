@@ -89,7 +89,7 @@ class _FakeTeacherHomeController extends TeacherHomeController {
     : super(apiService: _FakeRobleApiService(), authService: FakeAuthService());
 
   @override
-  void onInit() {}
+  Future<void> fetchCourses() async {}
 }
 
 class _FakeRobleApiService extends RobleApiService {}
