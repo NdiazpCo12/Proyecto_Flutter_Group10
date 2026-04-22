@@ -199,6 +199,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
           _StudentResultsView(
             summary: _resultsSummary,
             isLoading: _isLoadingResults,
+            onRefresh: _fetchResults,
           ),
           _StudentProfile(
             emailNotifications: _emailNotifications,

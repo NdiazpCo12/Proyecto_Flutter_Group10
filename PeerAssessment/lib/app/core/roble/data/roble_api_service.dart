@@ -642,6 +642,7 @@ class RobleApiService {
       read('assessment_scores'),
       read('assessments'),
       read('assessment_criteria'),
+      read('courses'),
     ]);
     final scores = tables[0]
         .map(RobleAssessmentScore.fromJson)
@@ -668,9 +669,14 @@ class RobleApiService {
         if ((criterion.id ?? '').trim().isNotEmpty)
           criterion.id!.trim(): criterion,
     };
+    final courseById = {
+      for (final course in tables[3].map(RobleCourseHome.fromJson))
+        if (course.id.isNotEmpty) course.id: course,
+    };
     final criterionAggregates = <String, _StudentResultCriterionAccumulator>{};
     final assessmentAggregates =
         <String, _StudentResultAssessmentAccumulator>{};
+    final courseAggregates = <String, _StudentResultCourseAccumulator>{};
     final reviewIds = <String>{};
 
     var totalScore = 0;
@@ -693,6 +699,11 @@ class RobleApiService {
       if (assessmentId.isEmpty) {
         continue;
       }
+      final courseId = assessment.courseId.trim();
+      if (courseId.isEmpty) {
+        continue;
+      }
+      final course = courseById[courseId];
 
       final criterionLabel = criterion.name.trim().isEmpty
           ? 'Criterion'
@@ -744,6 +755,61 @@ class RobleApiService {
       assessmentCriterionAggregate.scoreCount++;
       if (criterionOrder < assessmentCriterionAggregate.displayOrder) {
         assessmentCriterionAggregate.displayOrder = criterionOrder;
+      }
+
+      final courseAggregate = courseAggregates.putIfAbsent(
+        courseId,
+        () => _StudentResultCourseAccumulator(
+          courseId: courseId,
+          courseName: course?.name ?? 'Curso',
+          courseCode: course?.code ?? '',
+        ),
+      );
+      courseAggregate.totalScore += score.scoreValue;
+      courseAggregate.scoreCount++;
+      if (score.peerReviewId.trim().isNotEmpty) {
+        courseAggregate.reviewIds.add(score.peerReviewId.trim());
+      }
+
+      final courseCriterionAggregate = courseAggregate.criteria.putIfAbsent(
+        criterionLabel,
+        () => _StudentResultCriterionAccumulator(
+          label: criterionLabel,
+          displayOrder: criterionOrder,
+        ),
+      );
+      courseCriterionAggregate.totalScore += score.scoreValue;
+      courseCriterionAggregate.scoreCount++;
+      if (criterionOrder < courseCriterionAggregate.displayOrder) {
+        courseCriterionAggregate.displayOrder = criterionOrder;
+      }
+
+      final courseAssessmentAggregate = courseAggregate.assessments.putIfAbsent(
+        assessmentId,
+        () => _StudentResultAssessmentAccumulator(
+          assessmentId: assessmentId,
+          title: assessment.name,
+          date: assessment.endsAt,
+        ),
+      );
+      courseAssessmentAggregate.totalScore += score.scoreValue;
+      courseAssessmentAggregate.scoreCount++;
+      if (score.peerReviewId.trim().isNotEmpty) {
+        courseAssessmentAggregate.peerReviewIds.add(score.peerReviewId.trim());
+      }
+      final courseAssessmentCriterionAggregate = courseAssessmentAggregate
+          .criteria
+          .putIfAbsent(
+            criterionLabel,
+            () => _StudentResultCriterionAccumulator(
+              label: criterionLabel,
+              displayOrder: criterionOrder,
+            ),
+          );
+      courseAssessmentCriterionAggregate.totalScore += score.scoreValue;
+      courseAssessmentCriterionAggregate.scoreCount++;
+      if (criterionOrder < courseAssessmentCriterionAggregate.displayOrder) {
+        courseAssessmentCriterionAggregate.displayOrder = criterionOrder;
       }
     }
 
@@ -811,12 +877,107 @@ class RobleApiService {
             return a.title.toLowerCase().compareTo(b.title.toLowerCase());
           });
 
+    final courseResults =
+        courseAggregates.values
+            .where((aggregate) => aggregate.scoreCount > 0)
+            .map(
+              (aggregate) => RobleStudentCourseResults(
+                courseId: aggregate.courseId,
+                courseName: aggregate.courseName,
+                courseCode: aggregate.courseCode,
+                overallScore: aggregate.totalScore / aggregate.scoreCount,
+                assessmentCount: aggregate.assessments.length,
+                reviewCount: aggregate.reviewIds.length,
+                criteria:
+                    aggregate.criteria.values
+                        .where((criterion) => criterion.scoreCount > 0)
+                        .map(
+                          (criterion) => RobleStudentResultCriterionScore(
+                            label: criterion.label,
+                            score: criterion.totalScore / criterion.scoreCount,
+                            responseCount: criterion.scoreCount,
+                            displayOrder: criterion.displayOrder,
+                          ),
+                        )
+                        .toList()
+                      ..sort((a, b) {
+                        final orderCompare = a.displayOrder.compareTo(
+                          b.displayOrder,
+                        );
+                        if (orderCompare != 0) {
+                          return orderCompare;
+                        }
+                        return a.label.toLowerCase().compareTo(
+                          b.label.toLowerCase(),
+                        );
+                      }),
+                history:
+                    aggregate.assessments.values
+                        .where((assessment) => assessment.scoreCount > 0)
+                        .map(
+                          (assessment) => RobleStudentAssessmentHistoryItem(
+                            assessmentId: assessment.assessmentId,
+                            title: assessment.title,
+                            date: assessment.date,
+                            score:
+                                assessment.totalScore / assessment.scoreCount,
+                            reviewCount: assessment.peerReviewIds.length,
+                            criteria:
+                                assessment.criteria.values
+                                    .where(
+                                      (criterion) => criterion.scoreCount > 0,
+                                    )
+                                    .map(
+                                      (criterion) =>
+                                          RobleStudentResultCriterionScore(
+                                            label: criterion.label,
+                                            score:
+                                                criterion.totalScore /
+                                                criterion.scoreCount,
+                                            responseCount: criterion.scoreCount,
+                                            displayOrder:
+                                                criterion.displayOrder,
+                                          ),
+                                    )
+                                    .toList()
+                                  ..sort((a, b) {
+                                    final orderCompare = a.displayOrder
+                                        .compareTo(b.displayOrder);
+                                    if (orderCompare != 0) {
+                                      return orderCompare;
+                                    }
+                                    return a.label.toLowerCase().compareTo(
+                                      b.label.toLowerCase(),
+                                    );
+                                  }),
+                          ),
+                        )
+                        .toList()
+                      ..sort((a, b) {
+                        final dateCompare = b.date.compareTo(a.date);
+                        if (dateCompare != 0) {
+                          return dateCompare;
+                        }
+                        return a.title.toLowerCase().compareTo(
+                          b.title.toLowerCase(),
+                        );
+                      }),
+              ),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.displayLabel.toLowerCase().compareTo(
+              b.displayLabel.toLowerCase(),
+            ),
+          );
+
     return RobleStudentResultsSummary(
       overallScore: totalScoreCount == 0 ? 0 : totalScore / totalScoreCount,
       assessmentCount: history.length,
       reviewCount: reviewIds.length,
       criteria: criteria,
       history: history,
+      courseResults: courseResults,
     );
   }
 
@@ -1897,6 +2058,25 @@ class _StudentResultAssessmentAccumulator {
   final Set<String> peerReviewIds = <String>{};
   final Map<String, _StudentResultCriterionAccumulator> criteria =
       <String, _StudentResultCriterionAccumulator>{};
+  int totalScore = 0;
+  int scoreCount = 0;
+}
+
+class _StudentResultCourseAccumulator {
+  _StudentResultCourseAccumulator({
+    required this.courseId,
+    required this.courseName,
+    required this.courseCode,
+  });
+
+  final String courseId;
+  final String courseName;
+  final String courseCode;
+  final Set<String> reviewIds = <String>{};
+  final Map<String, _StudentResultCriterionAccumulator> criteria =
+      <String, _StudentResultCriterionAccumulator>{};
+  final Map<String, _StudentResultAssessmentAccumulator> assessments =
+      <String, _StudentResultAssessmentAccumulator>{};
   int totalScore = 0;
   int scoreCount = 0;
 }

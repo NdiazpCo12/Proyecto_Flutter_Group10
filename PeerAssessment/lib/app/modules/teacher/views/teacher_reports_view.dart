@@ -7,224 +7,340 @@ class _TeacherReports extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 120),
-      children: [
-        Container(
-          color: AppTheme.primaryGreen,
-          child: SafeArea(
-            bottom: false,
-            child: const Padding(
-              padding: EdgeInsets.fromLTRB(22, 24, 22, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Analytics Hub',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'View assessment insights and trends',
-                    style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
-          child: Obx(() {
-            if (controller.isLoadingAssessments.value) {
-              return const Padding(
-                padding: EdgeInsets.all(40),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: AppTheme.primaryGreen,
-                  ),
-                ),
-              );
-            }
-
-            if (controller.assessments.isEmpty) {
-              return _SurfaceCard(
-                borderRadius: 20,
-                child: const Column(
+    return RefreshIndicator(
+      onRefresh: controller.refreshReports,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 120),
+        children: [
+          Container(
+            color: AppTheme.primaryGreen,
+            child: SafeArea(
+              bottom: false,
+              child: const Padding(
+                padding: EdgeInsets.fromLTRB(22, 24, 22, 20),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'No assessments available',
+                      'Analytics Hub',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: 6),
                     Text(
-                      'Create an assessment first to start viewing analytics and results here.',
-                      style: TextStyle(fontSize: 16, color: AppTheme.textMuted),
+                      'View assessment insights and trends',
+                      style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
                     ),
                   ],
                 ),
-              );
-            }
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+            child: Obx(() {
+              if (controller.isLoadingAssessments.value) {
+                return const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryGreen,
+                    ),
+                  ),
+                );
+              }
 
-            final selectedAssessmentId =
-                controller.selectedAnalyticsAssessmentId.value;
-            final selectedOverview =
-                controller.selectedAnalyticsAssessmentOverview;
-            final analytics = controller.assessmentAnalytics.value;
-            final selectedGroup = controller.selectedAnalyticsGroup;
-
-            return Column(
-              children: [
-                _SurfaceCard(
+              if (controller.assessments.isEmpty) {
+                return _SurfaceCard(
                   borderRadius: 20,
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Select Assessment',
+                      Text(
+                        'No assessments available',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Choose which assessment you want to review before opening the charts and detailed breakdown.',
+                      SizedBox(height: 8),
+                      Text(
+                        'Create an assessment first to start viewing analytics and results here.',
                         style: TextStyle(
                           fontSize: 16,
                           color: AppTheme.textMuted,
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      DropdownButtonFormField<String>(
-                        key: ValueKey(
-                          'assessment-picker-${selectedAssessmentId ?? 'none'}',
-                        ),
-                        initialValue:
-                            selectedAssessmentId != null &&
-                                selectedAssessmentId.trim().isNotEmpty
-                            ? selectedAssessmentId
-                            : null,
-                        isExpanded: true,
-                        hint: const Text('Choose an assessment'),
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                        decoration: const InputDecoration(),
-                        items: controller.assessments
-                            .map(
-                              (assessment) => DropdownMenuItem<String>(
-                                value: assessment.assessment.id ?? '',
-                                child: Text(
-                                  '${assessment.assessment.name} - ${assessment.course.code}',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: controller.selectAnalyticsAssessment,
-                      ),
-                      if (selectedOverview != null) ...[
-                        const SizedBox(height: 18),
-                        _TeacherInfoRow(
-                          icon: Icons.school_outlined,
-                          text:
-                              '${selectedOverview.course.code} - ${selectedOverview.course.name}',
-                        ),
-                        const SizedBox(height: 12),
-                        _TeacherInfoRow(
-                          icon: Icons.groups_outlined,
-                          text: selectedOverview.categoryName,
-                        ),
-                        const SizedBox(height: 12),
-                        _TeacherInfoRow(
-                          icon: Icons.fact_check_outlined,
-                          text:
-                              '${selectedOverview.statusLabel} - ${selectedOverview.responsesSubmitted}/${selectedOverview.totalReviewers} responses',
-                        ),
-                      ],
                     ],
                   ),
-                ),
-                const SizedBox(height: 14),
-                if (selectedAssessmentId == null ||
-                    selectedAssessmentId.trim().isEmpty)
+                );
+              }
+
+              final selectedCourseId =
+                  controller.selectedAnalyticsCourseId.value;
+              final selectedAssessmentId =
+                  controller.selectedAnalyticsAssessmentId.value;
+              final selectedOverview =
+                  controller.selectedAnalyticsAssessmentOverview;
+              final analytics = controller.assessmentAnalytics.value;
+              final selectedGroup = controller.selectedAnalyticsGroup;
+              final filteredAssessments =
+                  controller.filteredAnalyticsAssessments;
+
+              return Column(
+                children: [
                   _SurfaceCard(
                     borderRadius: 20,
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Ready to explore results',
+                        const Text(
+                          'Select Course',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Select an assessment above to view engagement, averages, team performance and individual breakdowns.',
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Choose the course you want to analyze before selecting a specific assessment.',
                           style: TextStyle(
                             fontSize: 16,
                             color: AppTheme.textMuted,
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                else if (controller.isLoadingAnalytics.value)
-                  const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primaryGreen,
-                      ),
-                    ),
-                  )
-                else if (analytics == null)
-                  _SurfaceCard(
-                    borderRadius: 20,
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'No analytics available',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                        const SizedBox(height: 18),
+                        DropdownButtonFormField<String>(
+                          key: ValueKey(
+                            'course-picker-${selectedCourseId ?? 'none'}',
                           ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'We could not load the results for this assessment right now.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppTheme.textMuted,
-                          ),
+                          initialValue:
+                              selectedCourseId != null &&
+                                  selectedCourseId.trim().isNotEmpty
+                              ? selectedCourseId
+                              : null,
+                          isExpanded: true,
+                          hint: const Text('Choose a course'),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          decoration: const InputDecoration(),
+                          items: controller.courses
+                              .map(
+                                (course) => DropdownMenuItem<String>(
+                                  value: course.id,
+                                  child: Text(
+                                    '${course.code} - ${course.name}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: controller.selectAnalyticsCourse,
                         ),
                       ],
                     ),
-                  )
-                else
-                  _TeacherAssessmentAnalyticsContent(
-                    analytics: analytics,
-                    selectedGroup: selectedGroup,
-                    onGroupChanged: controller.selectAnalyticsGroup,
-                    expandedStudentId:
-                        controller.expandedAnalyticsStudentId.value,
-                    onStudentToggle: controller.toggleAnalyticsStudent,
                   ),
-              ],
-            );
-          }),
-        ),
-      ],
+                  const SizedBox(height: 14),
+                  _SurfaceCard(
+                    borderRadius: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Select Assessment',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          selectedCourseId == null ||
+                                  selectedCourseId.trim().isEmpty
+                              ? 'Pick a course first to see only the assessments that belong to it.'
+                              : 'Choose which assessment you want to review inside the selected course.',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        DropdownButtonFormField<String>(
+                          key: ValueKey(
+                            'assessment-picker-${selectedCourseId ?? 'none'}-${selectedAssessmentId ?? 'none'}',
+                          ),
+                          initialValue:
+                              selectedAssessmentId != null &&
+                                  selectedAssessmentId.trim().isNotEmpty
+                              ? selectedAssessmentId
+                              : null,
+                          isExpanded: true,
+                          hint: const Text('Choose an assessment'),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          decoration: const InputDecoration(),
+                          items: filteredAssessments
+                              .map(
+                                (assessment) => DropdownMenuItem<String>(
+                                  value: assessment.assessment.id ?? '',
+                                  child: Text(
+                                    assessment.assessment.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: filteredAssessments.isEmpty
+                              ? null
+                              : controller.selectAnalyticsAssessment,
+                        ),
+                        if (selectedOverview != null) ...[
+                          const SizedBox(height: 18),
+                          _TeacherInfoRow(
+                            icon: Icons.school_outlined,
+                            text:
+                                '${selectedOverview.course.code} - ${selectedOverview.course.name}',
+                          ),
+                          const SizedBox(height: 12),
+                          _TeacherInfoRow(
+                            icon: Icons.groups_outlined,
+                            text: selectedOverview.categoryName,
+                          ),
+                          const SizedBox(height: 12),
+                          _TeacherInfoRow(
+                            icon: Icons.fact_check_outlined,
+                            text:
+                                '${selectedOverview.statusLabel} - ${selectedOverview.responsesSubmitted}/${selectedOverview.totalReviewers} responses',
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (selectedCourseId == null ||
+                      selectedCourseId.trim().isEmpty)
+                    _SurfaceCard(
+                      borderRadius: 20,
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ready to explore results',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Choose a course first and then an assessment to open the analytics.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (filteredAssessments.isEmpty)
+                    _SurfaceCard(
+                      borderRadius: 20,
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'No assessments in this course',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Create an assessment for this course to start viewing analytics here.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (selectedAssessmentId == null ||
+                      selectedAssessmentId.trim().isEmpty)
+                    _SurfaceCard(
+                      borderRadius: 20,
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Assessment pending selection',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Choose an assessment from the selected course to view engagement, averages, team performance and detailed breakdowns.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (controller.isLoadingAnalytics.value)
+                    const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                    )
+                  else if (analytics == null)
+                    _SurfaceCard(
+                      borderRadius: 20,
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'No analytics available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'We could not load the results for this assessment right now.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    _TeacherAssessmentAnalyticsContent(
+                      analytics: analytics,
+                      selectedGroup: selectedGroup,
+                      onGroupChanged: controller.selectAnalyticsGroup,
+                      expandedStudentId:
+                          controller.expandedAnalyticsStudentId.value,
+                      onStudentToggle: controller.toggleAnalyticsStudent,
+                    ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 }

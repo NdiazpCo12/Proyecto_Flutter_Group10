@@ -949,6 +949,42 @@ class RobleStudentAssessmentHistoryItem {
   final List<RobleStudentResultCriterionScore> criteria;
 }
 
+class RobleStudentCourseResults {
+  const RobleStudentCourseResults({
+    required this.courseId,
+    required this.courseName,
+    required this.courseCode,
+    required this.overallScore,
+    required this.assessmentCount,
+    required this.reviewCount,
+    required this.criteria,
+    required this.history,
+  });
+
+  final String courseId;
+  final String courseName;
+  final String courseCode;
+  final double overallScore;
+  final int assessmentCount;
+  final int reviewCount;
+  final List<RobleStudentResultCriterionScore> criteria;
+  final List<RobleStudentAssessmentHistoryItem> history;
+
+  String get displayLabel {
+    final trimmedCode = courseCode.trim();
+    final trimmedName = courseName.trim();
+    if (trimmedCode.isEmpty) {
+      return trimmedName.isEmpty ? 'Curso' : trimmedName;
+    }
+    if (trimmedName.isEmpty) {
+      return trimmedCode;
+    }
+    return '$trimmedCode - $trimmedName';
+  }
+
+  bool get hasResults => reviewCount > 0 && history.isNotEmpty;
+}
+
 class RobleStudentResultsSummary {
   const RobleStudentResultsSummary({
     required this.overallScore,
@@ -956,6 +992,7 @@ class RobleStudentResultsSummary {
     required this.reviewCount,
     required this.criteria,
     required this.history,
+    required this.courseResults,
   });
 
   static const empty = RobleStudentResultsSummary(
@@ -964,6 +1001,7 @@ class RobleStudentResultsSummary {
     reviewCount: 0,
     criteria: [],
     history: [],
+    courseResults: [],
   );
 
   final double overallScore;
@@ -971,6 +1009,7 @@ class RobleStudentResultsSummary {
   final int reviewCount;
   final List<RobleStudentResultCriterionScore> criteria;
   final List<RobleStudentAssessmentHistoryItem> history;
+  final List<RobleStudentCourseResults> courseResults;
 
   bool get hasResults => reviewCount > 0 && history.isNotEmpty;
 }

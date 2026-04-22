@@ -1,257 +1,413 @@
 part of 'student_home_view.dart';
 
-class _StudentResultsView extends StatelessWidget {
-  const _StudentResultsView({required this.summary, required this.isLoading});
+class _StudentResultsView extends StatefulWidget {
+  const _StudentResultsView({
+    required this.summary,
+    required this.isLoading,
+    required this.onRefresh,
+  });
 
   final RobleStudentResultsSummary summary;
   final bool isLoading;
+  final Future<void> Function() onRefresh;
+
+  @override
+  State<_StudentResultsView> createState() => _StudentResultsViewState();
+}
+
+class _StudentResultsViewState extends State<_StudentResultsView> {
+  String? _selectedCourseId;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSelectedCourse();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StudentResultsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncSelectedCourse();
+  }
+
+  void _syncSelectedCourse() {
+    final courseResults = widget.summary.courseResults;
+    if (courseResults.isEmpty) {
+      _selectedCourseId = null;
+      return;
+    }
+
+    final hasSelected = courseResults.any(
+      (course) => course.courseId == _selectedCourseId,
+    );
+    if (!hasSelected) {
+      _selectedCourseId = courseResults.first.courseId;
+    }
+  }
+
+  RobleStudentCourseResults? get _selectedCourseResults {
+    final selectedCourseId = _selectedCourseId?.trim() ?? '';
+    if (selectedCourseId.isEmpty) {
+      return widget.summary.courseResults.isEmpty
+          ? null
+          : widget.summary.courseResults.first;
+    }
+
+    for (final course in widget.summary.courseResults) {
+      if (course.courseId == selectedCourseId) {
+        return course;
+      }
+    }
+
+    return widget.summary.courseResults.isEmpty
+        ? null
+        : widget.summary.courseResults.first;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 120),
-      children: [
-        Container(
-          color: AppTheme.primaryGreen,
-          child: SafeArea(
-            bottom: false,
-            child: const Padding(
-              padding: EdgeInsets.fromLTRB(22, 22, 22, 26),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'My Results',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+    final selectedCourse = _selectedCourseResults;
+
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 120),
+        children: [
+          Container(
+            color: AppTheme.primaryGreen,
+            child: SafeArea(
+              bottom: false,
+              child: const Padding(
+                padding: EdgeInsets.fromLTRB(22, 22, 22, 26),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'My Results',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'View your peer assessment feedback',
-                    style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
-                  ),
-                ],
+                    SizedBox(height: 4),
+                    Text(
+                      'View your peer assessment feedback by course',
+                      style: TextStyle(fontSize: 16, color: Color(0xFFDDE9DE)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
-          child: isLoading
-              ? const Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryGreen,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
+            child: widget.isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryGreen,
+                      ),
                     ),
-                  ),
-                )
-              : Column(
-                  children: [
-                    _StudentSurfaceCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Overall Performance',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                  )
+                : Column(
+                    children: [
+                      _StudentSurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Select Course',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            summary.hasResults
-                                ? 'Your average score across public assessments'
-                                : 'Only public assessments with published feedback appear here',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: AppTheme.secondarySlate,
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Choose the course whose public results you want to review.',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppTheme.secondarySlate,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 40),
-                          Center(
-                            child: Column(
-                              children: [
-                                Text(
-                                  summary.overallScore.toStringAsFixed(1),
+                            const SizedBox(height: 18),
+                            DropdownButtonFormField<String>(
+                              key: ValueKey(
+                                'student-results-course-${_selectedCourseId ?? 'none'}',
+                              ),
+                              initialValue:
+                                  _selectedCourseId != null &&
+                                      _selectedCourseId!.trim().isNotEmpty
+                                  ? _selectedCourseId
+                                  : null,
+                              isExpanded: true,
+                              hint: const Text('Choose a course'),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                              ),
+                              decoration: const InputDecoration(),
+                              items: widget.summary.courseResults
+                                  .map(
+                                    (course) => DropdownMenuItem<String>(
+                                      value: course.courseId,
+                                      child: Text(
+                                        course.displayLabel,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() => _selectedCourseId = value);
+                              },
+                            ),
+                            if (widget.summary.courseResults.isEmpty) ...[
+                              const SizedBox(height: 14),
+                              const Text(
+                                'No public course results available yet.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.secondarySlate,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _StudentSurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Overall Performance',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              selectedCourse?.hasResults == true
+                                  ? 'Your average score across public assessments in this course'
+                                  : 'Only public assessments with published feedback appear here',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: AppTheme.secondarySlate,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (selectedCourse != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F7F0),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  selectedCourse.displayLabel,
                                   style: const TextStyle(
-                                    fontSize: 46,
-                                    height: 1,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                     color: AppTheme.primaryGreen,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Out of 5.0',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: AppTheme.secondarySlate,
+                              ),
+                            const SizedBox(height: 28),
+                            Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    (selectedCourse?.overallScore ?? 0)
+                                        .toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontSize: 46,
+                                      height: 1,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.primaryGreen,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 26),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _ResultsStat(
-                                      value: '${summary.assessmentCount}',
-                                      label: 'Assessments',
-                                    ),
-                                    const SizedBox(width: 30),
-                                    _ResultsStat(
-                                      value: '${summary.reviewCount}',
-                                      label: 'Reviews',
-                                    ),
-                                  ],
-                                ),
-                                if (!summary.hasResults) ...[
-                                  const SizedBox(height: 18),
+                                  const SizedBox(height: 8),
                                   const Text(
-                                    'No public results available yet.',
+                                    'Out of 5.0',
                                     style: TextStyle(
                                       fontSize: 15,
                                       color: AppTheme.secondarySlate,
                                     ),
                                   ),
+                                  const SizedBox(height: 26),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _ResultsStat(
+                                        value:
+                                            '${selectedCourse?.assessmentCount ?? 0}',
+                                        label: 'Assessments',
+                                      ),
+                                      const SizedBox(width: 30),
+                                      _ResultsStat(
+                                        value:
+                                            '${selectedCourse?.reviewCount ?? 0}',
+                                        label: 'Reviews',
+                                      ),
+                                    ],
+                                  ),
+                                  if (selectedCourse?.hasResults != true) ...[
+                                    const SizedBox(height: 18),
+                                    const Text(
+                                      'No public results available yet for this course.',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: AppTheme.secondarySlate,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
+                            const SizedBox(height: 10),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    _StudentSurfaceCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Criteria Breakdown',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                      const SizedBox(height: 20),
+                      _StudentSurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Criteria Breakdown',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Your scores by evaluation criteria',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: AppTheme.secondarySlate,
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Your scores by evaluation criteria in the selected course',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppTheme.secondarySlate,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 22),
-                          if (summary.criteria.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(
-                                child: Text(
-                                  'No criteria data available yet.',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: AppTheme.secondarySlate,
+                            const SizedBox(height: 22),
+                            if (selectedCourse == null ||
+                                selectedCourse.criteria.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: Text(
+                                    'No criteria data available for this course yet.',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: AppTheme.secondarySlate,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              Center(
+                                child: SizedBox(
+                                  width: 380,
+                                  height: 380,
+                                  child: _RadarChart(
+                                    scores: selectedCourse.criteria,
                                   ),
                                 ),
                               ),
-                            )
-                          else
-                            Center(
-                              child: SizedBox(
-                                width: 380,
-                                height: 380,
-                                child: _RadarChart(scores: summary.criteria),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _StudentSurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Detailed Scores',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _StudentSurfaceCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Detailed Scores',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Breakdown by criteria',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: AppTheme.secondarySlate,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          if (summary.criteria.isEmpty)
+                            const SizedBox(height: 6),
                             const Text(
-                              'No detailed scores available yet.',
+                              'Breakdown by criteria for the selected course',
                               style: TextStyle(
                                 fontSize: 15,
                                 color: AppTheme.secondarySlate,
                               ),
-                            )
-                          else
-                            ...summary.criteria.map(
-                              (criterion) => Padding(
-                                padding: const EdgeInsets.only(bottom: 18),
-                                child: _DetailedScoreRow(score: criterion),
+                            ),
+                            const SizedBox(height: 18),
+                            if (selectedCourse == null ||
+                                selectedCourse.criteria.isEmpty)
+                              const Text(
+                                'No detailed scores available yet.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.secondarySlate,
+                                ),
+                              )
+                            else
+                              ...selectedCourse.criteria.map(
+                                (criterion) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 18),
+                                  child: _DetailedScoreRow(score: criterion),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _StudentSurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Assessment History',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _StudentSurfaceCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Assessment History',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Your past public peer assessments',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: AppTheme.secondarySlate,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          if (summary.history.isEmpty)
+                            const SizedBox(height: 6),
                             const Text(
-                              'No published assessment history available yet.',
+                              'Your past public peer assessments in the selected course',
                               style: TextStyle(
                                 fontSize: 15,
                                 color: AppTheme.secondarySlate,
                               ),
-                            )
-                          else
-                            ...summary.history.map(
-                              (item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _AssessmentHistoryCard(item: item),
-                              ),
                             ),
-                        ],
+                            const SizedBox(height: 18),
+                            if (selectedCourse == null ||
+                                selectedCourse.history.isEmpty)
+                              const Text(
+                                'No published assessment history available yet for this course.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.secondarySlate,
+                                ),
+                              )
+                            else
+                              ...selectedCourse.history.map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _AssessmentHistoryCard(item: item),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-        ),
-      ],
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

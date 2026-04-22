@@ -15,6 +15,7 @@ class TeacherHomeController extends GetxController {
   final isLoadingAnalytics = false.obs;
   final courses = <RobleCourseHome>[].obs;
   final assessments = <RobleAssessmentOverview>[].obs;
+  final selectedAnalyticsCourseId = RxnString();
   final selectedAnalyticsAssessmentId = RxnString();
   final assessmentAnalytics = Rxn<RobleTeacherAssessmentAnalytics>();
   final selectedAnalyticsGroupId = RxnString();
@@ -82,10 +83,19 @@ class TeacherHomeController extends GetxController {
       final email = user?.email ?? 'profesor@uninorte.edu.co';
       final fetched = await _api.getCourses(email);
       courses.value = fetched;
+      final selectedCourseId = selectedAnalyticsCourseId.value?.trim() ?? '';
+      if (selectedCourseId.isNotEmpty &&
+          fetched.every((course) => course.id != selectedCourseId)) {
+        selectedAnalyticsCourseId.value = null;
+      }
+      if (selectedAnalyticsCourseId.value == null && fetched.length == 1) {
+        selectedAnalyticsCourseId.value = fetched.first.id;
+      }
       fetchAssessments(teacherEmail: email);
     } catch (e) {
       courses.clear();
       assessments.clear();
+      selectedAnalyticsCourseId.value = null;
       assessmentAnalytics.value = null;
       selectedAnalyticsAssessmentId.value = null;
       selectedAnalyticsGroupId.value = null;
@@ -123,9 +133,21 @@ class TeacherHomeController extends GetxController {
           teacherEmail ??
           (await Get.find<AuthService>().getStoredUser())?.email ??
           'profesor@uninorte.edu.co';
+      final previousSelectedCourseId = selectedAnalyticsCourseId.value;
       final fetched = await _api.getTeacherAssessments(email);
       final previousSelectedAssessmentId = selectedAnalyticsAssessmentId.value;
       assessments.value = fetched;
+
+      if (previousSelectedCourseId != null &&
+          previousSelectedCourseId.trim().isNotEmpty &&
+          fetched.every(
+            (assessment) => assessment.course.id != previousSelectedCourseId,
+          )) {
+        selectedAnalyticsCourseId.value = null;
+      }
+      if (selectedAnalyticsCourseId.value == null && fetched.isNotEmpty) {
+        selectedAnalyticsCourseId.value = fetched.first.course.id;
+      }
 
       if (previousSelectedAssessmentId == null ||
           previousSelectedAssessmentId.trim().isEmpty) {
@@ -137,7 +159,9 @@ class TeacherHomeController extends GetxController {
 
       final stillExists = fetched.any(
         (assessment) =>
-            assessment.assessment.id == previousSelectedAssessmentId,
+            assessment.assessment.id == previousSelectedAssessmentId &&
+            (selectedAnalyticsCourseId.value == null ||
+                assessment.course.id == selectedAnalyticsCourseId.value),
       );
       if (!stillExists) {
         selectedAnalyticsAssessmentId.value = null;
@@ -150,6 +174,7 @@ class TeacherHomeController extends GetxController {
       await selectAnalyticsAssessment(previousSelectedAssessmentId);
     } catch (e) {
       assessments.clear();
+      selectedAnalyticsCourseId.value = null;
       assessmentAnalytics.value = null;
       selectedAnalyticsAssessmentId.value = null;
       selectedAnalyticsGroupId.value = null;
@@ -181,8 +206,32 @@ class TeacherHomeController extends GetxController {
     return null;
   }
 
+  List<RobleAssessmentOverview> get filteredAnalyticsAssessments {
+    final selectedCourseId = selectedAnalyticsCourseId.value?.trim() ?? '';
+    if (selectedCourseId.isEmpty) {
+      return const <RobleAssessmentOverview>[];
+    }
+    return assessments
+        .where((assessment) => assessment.course.id == selectedCourseId)
+        .toList(growable: false);
+  }
+
   RobleTeacherAssessmentGroupAnalytics? get selectedAnalyticsGroup {
     return assessmentAnalytics.value?.groupById(selectedAnalyticsGroupId.value);
+  }
+
+  void selectAnalyticsCourse(String? courseId) {
+    final trimmedId = courseId?.trim() ?? '';
+    selectedAnalyticsCourseId.value = trimmedId.isEmpty ? null : trimmedId;
+
+    final selectedAssessment = selectedAnalyticsAssessmentOverview;
+    if (selectedAssessment == null ||
+        selectedAssessment.course.id != selectedAnalyticsCourseId.value) {
+      selectedAnalyticsAssessmentId.value = null;
+      assessmentAnalytics.value = null;
+      selectedAnalyticsGroupId.value = null;
+      expandedAnalyticsStudentId.value = null;
+    }
   }
 
   Future<void> selectAnalyticsAssessment(String? assessmentId) async {
@@ -227,6 +276,11 @@ class TeacherHomeController extends GetxController {
     final trimmedId = groupId?.trim() ?? '';
     selectedAnalyticsGroupId.value = trimmedId.isEmpty ? null : trimmedId;
     expandedAnalyticsStudentId.value = null;
+  }
+
+  Future<void> refreshReports() async {
+    await fetchCourses();
+    await fetchAssessments();
   }
 
   void toggleAnalyticsStudent(String studentId) {
